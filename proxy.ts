@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 /** A unique CSP nonce per request; all pages are dynamically rendered. */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const dev = process.env.NODE_ENV === "development";
   // Explicit preview-only opt-in; production default never permits embedding.
