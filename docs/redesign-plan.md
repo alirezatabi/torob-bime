@@ -49,7 +49,7 @@ contracts + task plan + environment/agent roles
 
 ## Final local checkpoint
 
-- The default production build, typecheck, lint, format and offline eval passed. With disposable PostgreSQL, 59 Vitest tests and 17 production Playwright tests passed; a separate mocked-network debounce test passed. The latest Lighthouse mobile single runs scored 94/100/100/100 for home and 93/100/100/100 for car comparison. See `docs/verification-report.md` for conditions, 32 screenshots and per-ID status.
+- The default production build, typecheck, lint, format and offline eval passed. With disposable PostgreSQL, 59 Vitest tests and 18 Playwright tests passed against the embed-enabled production preview; a separate mocked-network debounce test passed. The latest Lighthouse mobile single runs scored 94/100/100/100 for home and 93/100/100/100 for car comparison. See `docs/verification-report.md` for conditions, 32 screenshots and per-ID status.
 - No live Anthropic credentials or model snapshots were available; replay measured 0/34 and correctly exited nonzero. Native Windows, a clean networked Prisma installation, real HTTPS proxy behavior and hosted deployment still require user verification.
 - Prisma 7 was reverted after its engine CDN was blocked; Next Cache Components were evaluated but failed prerendering. The working stack remains Prisma 6 with the documented 60-second Next cache. Independent subagents/MCP were not available.
 

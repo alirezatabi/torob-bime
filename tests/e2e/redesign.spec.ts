@@ -120,3 +120,34 @@ test("hero preview enters once and honors reduced-motion preferences", async ({ 
   const reduced = await preview.evaluate((element) => getComputedStyle(element).animationDuration);
   expect(parseFloat(reduced)).toBeLessThan(0.001);
 });
+
+test("mobile two-plan selectors remain distinct and update the table", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/compare/car-body");
+  const first = page.getByLabel("انتخاب طرح اول");
+  const second = page.getByLabel("انتخاب طرح دوم");
+  const initialFirst = await first.inputValue();
+  const initialSecond = await second.inputValue();
+  expect(initialFirst).not.toBe(initialSecond);
+  await first.selectOption(initialSecond);
+  await expect(first).toHaveValue(initialSecond);
+  await expect(second).toHaveValue(initialFirst);
+  const table = page.getByRole("table", { name: /مقایسه پوشش‌های/ });
+  await expect(table.locator("thead th")).toHaveCount(3);
+  const newFirstLabel = await first.locator("option:checked").textContent();
+  await expect(table.locator("thead th").nth(1)).toContainText(newFirstLabel!.split(" · ")[0]);
+  const third = await second
+    .locator("option")
+    .evaluateAll(
+      (options, selected) =>
+        options
+          .map((option) => (option as HTMLOptionElement).value)
+          .find((value) => !selected.includes(value)),
+      [initialFirst, initialSecond],
+    );
+  expect(third).toBeTruthy();
+  await second.selectOption(third!);
+  await expect(second).toHaveValue(third!);
+  const newSecondLabel = await second.locator("option:checked").textContent();
+  await expect(table.locator("thead th").nth(2)).toContainText(newSecondLabel!.split(" · ")[0]);
+});
