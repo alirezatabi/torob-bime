@@ -34,10 +34,23 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
 }
 function CompareLoading() {
   return (
-    <main className="mx-auto max-w-[1200px] px-5 py-20" aria-live="polite">
-      <Skeleton className="h-8 w-48" />
+    <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8" aria-live="polite">
+      <p className="sr-only">در حال آماده‌سازی مقایسه...</p>
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="mt-5 h-20 w-full" />
       <Skeleton className="mt-6 h-32 w-full" />
-      <p className="mt-6 text-xs text-text-muted">در حال آماده‌سازی مقایسه...</p>
+      <Skeleton className="mt-12 h-8 w-56" />
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((item) => (
+          <div key={item} className="rounded-2xl border border-border bg-surface-raised p-5">
+            <Skeleton className="h-12 w-12" />
+            <Skeleton className="mt-5 h-5 w-2/3" />
+            <Skeleton className="mt-5 h-20 w-full" />
+            <Skeleton className="mt-5 h-32 w-full" />
+            <Skeleton className="mt-5 h-11 w-full" />
+          </div>
+        ))}
+      </div>
     </main>
   );
 }
