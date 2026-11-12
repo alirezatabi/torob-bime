@@ -198,7 +198,12 @@ function Group({
                     </span>
                   )}
                   {value === null && (
-                    <span className="block text-xs text-text-muted">در متن تأیید نشده است.</span>
+                    <Tooltip
+                      label={`چرا ${field.labelFa} در ${product.nameFa}، ${product.insurerNameFa} نامشخص است؟`}
+                    >
+                      در متن نمونه شاهد کافی برای این مقدار پیدا نشده است؛ نامشخص به معنی نداشتن
+                      پوشش نیست.
+                    </Tooltip>
                   )}
                   <EvidenceButton
                     product={product}

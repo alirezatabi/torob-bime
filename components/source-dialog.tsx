@@ -2,7 +2,7 @@
 import { BookOpenText, ExternalLink, X } from "lucide-react";
 import { faNumber } from "@/lib/domain/format";
 import type { ExtractionProvenance } from "@/lib/schemas/contracts";
-import { provenanceText } from "./provenance";
+import { ProvenanceText } from "./provenance";
 import { Drawer } from "./ui/drawer";
 import { IconButton } from "./ui/button";
 
@@ -77,8 +77,8 @@ export function SourceDialog({
           )}
         </blockquote>
         <p className="mt-4 text-xs leading-6 text-text-muted">
-          {provenanceText(source.provenance)}. وجود نقل‌قول به‌تنهایی درستی معنایی را تضمین نمی‌کند؛
-          متن کامل را هم بررسی کنید.
+          <ProvenanceText provenance={source.provenance} />. وجود نقل‌قول به‌تنهایی درستی معنایی را
+          تضمین نمی‌کند؛ متن کامل را هم بررسی کنید.
         </p>
         {source.sourceUrl && (
           <a

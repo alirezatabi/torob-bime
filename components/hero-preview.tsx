@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpenText, Check, Minus, X } from "lucide-react";
 import { getCoverage } from "@/lib/domain/ranking";
 import { formatValue } from "@/lib/domain/format";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
-import { provenanceText } from "./provenance";
+import { ProvenanceText } from "./provenance";
 import { InsurerMark } from "./ui/identity";
 export function HeroPreview({
   schema,
@@ -74,7 +74,11 @@ export function HeroPreview({
             <BookOpenText size={17} className="mt-1 shrink-0" aria-hidden="true" />
             <span>
               هر مقدار قابل بررسی است.{" "}
-              {shown.length ? provenanceText(shown[0].provenance) : "اطلاعات نمونه در دسترس نیست."}
+              {shown.length ? (
+                <ProvenanceText provenance={shown[0].provenance} />
+              ) : (
+                "اطلاعات نمونه در دسترس نیست."
+              )}
             </span>
           </div>
           <Link

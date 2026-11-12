@@ -9,7 +9,7 @@ import {
   type RankedProduct,
 } from "@/lib/domain/ranking";
 import type { InsuranceSchema } from "@/lib/schemas/contracts";
-import { provenanceText } from "./provenance";
+import { ProvenanceText } from "./provenance";
 import { EvidenceButton, type SourceHandler } from "./evidence-button";
 import { Badge } from "./ui/surfaces";
 import { Button } from "./ui/button";
@@ -207,7 +207,9 @@ export function PlanCard({
           </p>
         )}
       </div>
-      <p className="mt-4 text-xs leading-6 text-text-muted">{provenanceText(product.provenance)}</p>
+      <p className="mt-4 text-xs leading-6 text-text-muted">
+        <ProvenanceText provenance={product.provenance} />
+      </p>
       <div className="mt-auto flex flex-wrap gap-2 pt-4">
         <Button
           variant={selected ? "secondary" : "primary"}

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { formatValue, faNumber } from "@/lib/domain/format";
 import { getCoverage } from "@/lib/domain/ranking";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
-import { provenanceText } from "./provenance";
+import { ProvenanceText } from "./provenance";
 
 type Segment = { text: string; key?: string };
 export function ExtractionInspector({
@@ -39,8 +39,9 @@ export function ExtractionInspector({
   return (
     <>
       <div className="mt-6 rounded-2xl bg-info-soft p-4 text-xs leading-7 text-info">
-        {provenanceText(product.provenance)}. برای دیدن ارتباط دو طرف، روی یک فیلد یا بخش مشخص‌شده
-        متن بروید یا با صفحه‌کلید آن را انتخاب کنید. وجود نقل‌قول، صحت معنایی را تضمین نمی‌کند.
+        <ProvenanceText provenance={product.provenance} />. برای دیدن ارتباط دو طرف، روی یک فیلد یا
+        بخش مشخص‌شده متن بروید یا با صفحه‌کلید آن را انتخاب کنید. وجود نقل‌قول، صحت معنایی را تضمین
+        نمی‌کند.
       </div>
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-2">
         <section
