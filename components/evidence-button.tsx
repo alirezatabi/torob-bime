@@ -19,7 +19,7 @@ export function EvidenceButton({
   onSource: SourceHandler;
   compact?: boolean;
 }) {
-  if (!coverage?.evidence) return null;
+  if (!coverage?.evidence || coverage.value === null) return null;
   return (
     <button
       type="button"

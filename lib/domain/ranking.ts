@@ -27,9 +27,12 @@ export function isScoredField(field: CoverageField): boolean {
   return !field.isExclusion && !field.isPremium && field.kind !== "text";
 }
 
-function scoreableValue(product: ComparableProduct, fieldKey: string): CoveragePrimitive {
+export function evidenceBackedValue(
+  product: ComparableProduct,
+  fieldKey: string,
+): CoveragePrimitive {
   const coverage = getCoverage(product, fieldKey);
-  // The catalogue grounds values before ranking; keep this boundary defensive too.
+  // The catalogue grounds values before use; keep the rendering and scoring boundaries defensive too.
   return coverage?.evidence ? coverage.value : null;
 }
 
@@ -52,7 +55,7 @@ export function rankProducts(
   const ranges = new Map<string, { min: number; max: number }>();
   for (const field of fields) {
     const nums = products
-      .map((product) => scoreableValue(product, field.key))
+      .map((product) => evidenceBackedValue(product, field.key))
       .filter((value): value is number => typeof value === "number");
     if (nums.length) ranges.set(field.key, { min: Math.min(...nums), max: Math.max(...nums) });
   }
@@ -61,7 +64,7 @@ export function rankProducts(
       let weighted = 0;
       let known = 0;
       for (const field of fields) {
-        const value = scoreableValue(product, field.key);
+        const value = evidenceBackedValue(product, field.key);
         const normalized = normalizedFieldScore(field, value, ranges.get(field.key));
         if (normalized !== null) known++;
         weighted += (normalized ?? 0) * field.weight * (priorities.includes(field.key) ? 3 : 1);
@@ -155,9 +158,9 @@ export function relativeFieldScore(
   field: CoverageField,
   products: ComparableProduct[],
 ): number | null {
-  const value = scoreableValue(product, field.key);
+  const value = evidenceBackedValue(product, field.key);
   const nums = products
-    .map((item) => scoreableValue(item, field.key))
+    .map((item) => evidenceBackedValue(item, field.key))
     .filter((item): item is number => typeof item === "number");
   const range = nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : undefined;
   return normalizedFieldScore(field, value, range);
@@ -190,7 +193,8 @@ export function scoreContributionFacts(
         return [];
       const prioritized = priorities.includes(field.key);
       const differs =
-        new Set(products.map((item) => JSON.stringify(scoreableValue(item, field.key)))).size > 1;
+        new Set(products.map((item) => JSON.stringify(evidenceBackedValue(item, field.key)))).size >
+        1;
       return [
         {
           field,

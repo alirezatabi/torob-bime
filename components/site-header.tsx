@@ -9,7 +9,7 @@ export function SiteHeader() {
         <Logo />
         <nav
           aria-label="ناوبری اصلی"
-          className="hidden items-center gap-7 text-xs font-bold text-text-muted md:flex"
+          className="hidden items-center gap-7 text-sm font-bold text-text-muted md:flex"
         >
           <Link className="py-3 transition hover:text-brand-strong" href="/#insurance-types">
             انواع بیمه

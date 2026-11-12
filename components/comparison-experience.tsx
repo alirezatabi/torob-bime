@@ -1,17 +1,18 @@
 "use client";
 import { useMemo, useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { z } from "zod";
-import { Check, Copy, ShieldAlert, X } from "lucide-react";
+import { Check, Copy, Plus, ShieldAlert, X } from "lucide-react";
 import { faNumber, formatMoney, formatValue } from "@/lib/domain/format";
 import {
+  evidenceBackedValue,
   getCoverage,
   isNonCoverage,
   isScoredField,
   limitationFacts,
   rankProducts,
 } from "@/lib/domain/ranking";
-import { readComparisonState, type ComparisonState } from "@/lib/domain/comparison-query";
+import { readComparisonState } from "@/lib/domain/comparison-query";
 import { toLatinDigits } from "@/lib/domain/text";
 import type {
   ComparableProduct,
@@ -56,20 +57,23 @@ type Props = {
   schema: InsuranceSchema;
   products: ComparableProduct[];
   catalogueNotice: ReactNode;
-  initial: ComparisonState;
+  initialQuery: string;
   hasAi: boolean;
 };
-export function ComparisonExperience({ schema, products, catalogueNotice, initial, hasAi }: Props) {
-  const search = useSearchParams();
+export function ComparisonExperience({
+  schema,
+  products,
+  catalogueNotice,
+  initialQuery,
+  hasAi,
+}: Props) {
   const pathname = usePathname();
-  const queryKey = useSyncExternalStore(
-    subscribeQuery,
-    browserQuery,
-    () => search?.toString() ?? "",
-  );
+  // The server snapshot must be the query that produced this HTML, not the
+  // router's potentially stale intermediate state during rapid Back/Forward.
+  const queryKey = useSyncExternalStore(subscribeQuery, browserQuery, () => initialQuery);
   const state = useMemo(
-    () => (search ? readComparisonState(new URLSearchParams(queryKey), schema, products) : initial),
-    [queryKey, schema, products, search, initial],
+    () => readComparisonState(new URLSearchParams(queryKey), schema, products),
+    [queryKey, schema, products],
   );
   const { priorities, constraints, selected, budget } = state;
   const [hideIdentical, setHideIdentical] = useState(false);
@@ -96,9 +100,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
     field,
     differs:
       new Set(
-        compared.map(({ product }) =>
-          JSON.stringify(getCoverage(product, field.key)?.value ?? null),
-        ),
+        compared.map(({ product }) => JSON.stringify(evidenceBackedValue(product, field.key))),
       ).size > 1,
   }));
 
@@ -137,7 +139,11 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
     if (value) params.set(key, value);
     else params.delete(key);
     const next = params.toString();
-    window.history.pushState(null, "", `${pathname}${next ? `?${next}` : ""}`);
+    window.history.pushState(
+      null,
+      "",
+      `${pathname}${next ? `?${next}` : ""}${window.location.hash}`,
+    );
     window.dispatchEvent(new Event(queryChange));
   }
   function togglePriority(key: string) {
@@ -188,7 +194,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
     field: CoverageField,
     coverage?: CoverageValue,
   ) => {
-    if (!coverage?.evidence) return;
+    if (!coverage?.evidence || coverage.value === null) return;
     setSource({
       title: field.labelFa,
       productName: `${product.nameFa} · ${product.insurerNameFa}`,
@@ -211,7 +217,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
   }
   return (
     <>
-      <div className="sticky top-0 z-20 -mx-5 border-y border-border bg-surface-raised/95 px-5 py-3 shadow-card backdrop-blur sm:-mx-8 sm:px-8">
+      <div className="relative z-20 -mx-5 border-y border-border bg-surface-raised/95 px-5 py-3 shadow-card backdrop-blur sm:-mx-8 sm:px-8 md:sticky md:top-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <TypeIcon type={schema.icon} />
@@ -221,7 +227,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge tone="warning">
+            <Badge tone={products.every((product) => product.isSampleData) ? "warning" : "neutral"}>
               {faNumber(products.length)} طرح
               {products.every((product) => product.isSampleData) ? " نمونه" : ""}
             </Badge>
@@ -232,8 +238,8 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         </div>
         {notice && <Toast>{notice}</Toast>}
         {priorities.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-text-muted">
-            <span>اولویت شما:</span>
+          <div className="scrollbar-thin mt-2 hidden items-center gap-2 overflow-x-auto pb-1 text-xs text-text-muted md:flex">
+            <span className="shrink-0">اولویت شما:</span>
             {priorities.map((key) => {
               const field = schema.fields.find((item) => item.key === key);
               return field ? (
@@ -241,7 +247,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
                   key={key}
                   onClick={() => togglePriority(key)}
                   aria-label={`حذف اولویت ${field.labelFa}`}
-                  className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-brand-soft px-2 text-xs font-bold text-brand-strong"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-brand-soft px-2 text-xs font-bold text-brand-strong"
                 >
                   {field.labelFa}
                   <X size={14} aria-hidden="true" />
@@ -252,15 +258,36 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         )}
       </div>
       {catalogueNotice}
+      <nav
+        aria-label="دسترسی سریع به بخش‌های مقایسه"
+        className="scrollbar-thin mt-5 flex items-center gap-2 overflow-x-auto pb-1"
+      >
+        <span className="hidden shrink-0 text-xs font-bold text-text-muted sm:inline">
+          در این صفحه:
+        </span>
+        {[
+          { href: "#plans", label: "طرح‌ها" },
+          { href: "#non-coverage", label: "بدون پوشش" },
+          { href: "#comparison-details", label: "جدول و منبع" },
+        ].map(({ href, label }) => (
+          <a
+            key={href}
+            href={href}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-border bg-surface-raised px-4 text-xs font-bold text-text-muted transition hover:border-brand hover:text-brand-strong"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
       <section
         aria-label="اولویت‌های مقایسه"
         className="mt-5 rounded-3xl border border-border bg-surface-raised p-5 shadow-card"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-extrabold">مقایسه بر اساس نیاز شما</h2>
-            <p className="mt-1 text-xs leading-6 text-text-muted">
-              اولویت‌های انتخاب‌شده در امتیازدهی پوشش سه برابر وزن دارند.
+            <h2 className="text-lg font-extrabold">چه پوشش‌هایی برای شما مهم‌تر است؟</h2>
+            <p className="mt-1 text-sm leading-7 text-text-muted">
+              همه معیارها در امتیاز لحاظ می‌شوند؛ با انتخاب هر اولویت، وزن آن ۳ برابر می‌شود.
             </p>
           </div>
           <Disclosure title="روش امتیازدهی">
@@ -276,7 +303,11 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
               active={priorities.includes(field.key)}
               onClick={() => togglePriority(field.key)}
             >
-              {priorities.includes(field.key) && <Check size={15} aria-hidden="true" />}
+              {priorities.includes(field.key) ? (
+                <Check size={15} aria-hidden="true" />
+              ) : (
+                <Plus size={15} aria-hidden="true" />
+              )}
               {field.labelFa}
             </Chip>
           ))}
@@ -391,7 +422,11 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
           )}
         </form>
       </section>
-      <section aria-labelledby="ranking-title" className="mt-12">
+      <section
+        id="plans"
+        aria-labelledby="ranking-title"
+        className="mt-12 scroll-mt-6 md:scroll-mt-36"
+      >
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-bold text-brand-strong">یک نگاه کلی</p>
@@ -399,7 +434,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
               طرح‌ها به ترتیب تناسب پوشش
             </h2>
             <p className="mt-2 text-sm leading-7 text-text-muted">
-              برای هر طرح، یک معیار مؤثر و یک مورد بدون پوشش را با منبع ببینید. امتیاز، توصیه خرید
+              در صورت وجود، معیار مؤثر و مورد بدون پوشش هر طرح را با منبع ببینید. امتیاز، توصیه خرید
               یا اعتبار شرکت نیست.
             </p>
           </div>
@@ -437,8 +472,9 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         </p>
       </section>
       <section
+        id="non-coverage"
         aria-labelledby="limitations-title"
-        className="mt-12 rounded-3xl border border-border bg-danger-soft p-5 sm:p-6"
+        className="mt-12 scroll-mt-6 rounded-3xl border border-border bg-danger-soft p-5 sm:p-6 md:scroll-mt-36"
       >
         <div className="flex items-start gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-raised text-danger">
@@ -510,7 +546,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         <h2 id="value-title" className="text-xl font-extrabold">
           پوشش در برابر حق‌بیمه نمونه
         </h2>
-        <p className="mt-2 text-xs leading-6 text-text-muted">
+        <p className="mt-2 text-sm leading-7 text-text-muted">
           برای تمرین مقایسه، امتیاز پوشش و مبلغ ساختگی سالانه را کنار هم ببینید؛ این اعداد قیمت
           واقعی یا پیشنهاد خرید نیستند.
         </p>
@@ -527,15 +563,18 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
                   {product.nameFa} · {product.insurerNameFa}
                 </strong>
                 <span>
-                  {faNumber(score)}٪ پوشش نسبی /{" "}
-                  {field ? formatValue(field, coverage?.value ?? null) : "نامشخص"} نمونه
+                  امتیاز {faNumber(score)} از ۱۰۰ /{" "}
+                  {field
+                    ? formatValue(field, coverage?.evidence ? coverage.value : null)
+                    : "نامشخص"}{" "}
+                  نمونه
                 </span>
               </div>
             );
           })}
         </div>
       </section>
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface-raised p-3 shadow-float md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface-raised p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-float md:hidden">
         <div className="mx-auto flex max-w-[1200px] items-center gap-2">
           <div className="scrollbar-thin flex min-w-0 flex-1 gap-1 overflow-x-auto">
             {compared.map(({ product }) => (
@@ -554,14 +593,12 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
               </span>
             ))}
           </div>
-          <Button
-            onClick={() =>
-              document.getElementById("table-title")?.scrollIntoView({ behavior: "smooth" })
-            }
-            className="shrink-0 text-xs"
+          <a
+            href="#comparison-details"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-brand px-4 py-2 text-xs font-bold text-on-brand transition hover:bg-brand-strong"
           >
             مقایسه ({faNumber(selected.length)})
-          </Button>
+          </a>
         </div>
       </div>
       {source && <SourceDialog source={source} onClose={() => setSource(null)} />}

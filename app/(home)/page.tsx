@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowUpLeft,
   BookOpenText,
+  Info,
   Layers3,
   ScanSearch,
   ShieldCheck,
@@ -11,6 +12,7 @@ import { IntentSearch } from "@/components/intent-search";
 import { HeroPreview } from "@/components/hero-preview";
 import { TypeIcon } from "@/components/type-icon";
 import { Badge } from "@/components/ui/surfaces";
+import { LinkStatus } from "@/components/ui/link-status";
 import { getCatalogue } from "@/lib/data/catalog";
 import { activeSchemas } from "@/lib/schemas/registry";
 import { faNumber } from "@/lib/domain/format";
@@ -19,24 +21,38 @@ import { aiConfigured } from "@/lib/ai/anthropic";
 export default async function HomePage() {
   const catalogues = await Promise.all(activeSchemas.map((schema) => getCatalogue(schema.slug)));
   const hero = catalogues.find((catalogue) => catalogue?.schema.slug === "car-body");
+  const products = catalogues.flatMap((catalogue) => catalogue?.products ?? []);
+  const hasSamples = products.some((product) => product.isSampleData);
+  const onlySamples = products.length > 0 && products.every((product) => product.isSampleData);
   return (
     <main>
       <div className="mx-auto max-w-[1200px] px-5 sm:px-8">
-        <section className="grid items-center gap-14 pb-20 pt-12 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_430px] lg:gap-20 lg:pb-24 lg:pt-20">
+        <section className="grid items-center gap-12 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_430px] lg:gap-20 lg:pb-24 lg:pt-14">
           <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs font-bold text-brand-strong">
-              <span className="h-2 w-2 rounded-full bg-brand" /> مقایسه بیمه، شفاف و قابل بررسی
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs font-bold text-brand-strong">
+              <span className="h-2 w-2 rounded-full bg-brand" /> موتور مقایسه بیمه · پروژه نمایشی
+              مستقل
             </div>
             <h1 className="text-[32px] font-extrabold leading-[1.65] text-text sm:text-[40px] lg:text-[46px]">
-              هر عدد، <span className="text-brand-strong">یک منبع.</span>
+              مقایسه بیمه،
               <br />
-              هر انتخاب، آگاهانه‌تر.
+              <span className="text-brand-strong">روشن و قابل بررسی.</span>
             </h1>
-            <p className="mb-8 mt-4 max-w-[540px] text-base leading-8 text-text-muted">
-              بگویید چه پوششی برای شما مهم است؛ تفاوت طرح‌های نمونه، محدودیت‌ها و متن پشتیبان هر
-              مقدار را کنار هم ببینید.
+            <p className="mt-3 max-w-[560px] text-base leading-8 text-text-muted">
+              نیازتان را بگویید؛ پوشش‌ها و موارد بدون پوشش را کنار هم ببینید و منبع هر مقدار را
+              بررسی کنید.
             </p>
-            <IntentSearch aiEnabled={aiConfigured()} />
+            {hasSamples && (
+              <p className="mt-4 flex items-start gap-2 rounded-xl bg-warning-soft px-3 py-2 text-xs leading-7 text-warning">
+                <Info size={17} className="mt-1 shrink-0" aria-hidden="true" />
+                {onlySamples
+                  ? "شرکت‌ها، طرح‌ها و حق‌بیمه‌ها در این نسخه ساختگی‌اند؛ قیمت واقعی نیستند."
+                  : "طرح‌های دارای برچسب «نمونه» و حق‌بیمه‌هایشان ساختگی‌اند؛ قیمت واقعی نیستند."}
+              </p>
+            )}
+            <div className="mt-5">
+              <IntentSearch aiEnabled={aiConfigured()} />
+            </div>
           </div>
           {hero && (
             <div className="px-4 pb-4 pt-3 lg:px-0">
@@ -85,7 +101,7 @@ export default async function HomePage() {
                             <Badge tone="warning">نمونه</Badge>
                           )}
                       </div>
-                      <p className="mt-1 text-xs leading-6 text-text-muted">
+                      <p className="mt-2 text-sm leading-7 text-text-muted">
                         {catalogue.schema.descriptionFa}
                       </p>
                       <p className="mt-3 text-xs font-bold text-brand-strong">
@@ -96,6 +112,7 @@ export default async function HomePage() {
                           : ""}{" "}
                         ←
                       </p>
+                      <LinkStatus />
                     </div>
                   </Link>
                 ),
@@ -122,7 +139,7 @@ export default async function HomePage() {
             <article className="rounded-2xl bg-surface-muted p-5">
               <ScanSearch className="text-brand-strong" size={22} aria-hidden="true" />
               <h3 className="mt-3 text-base font-extrabold">۱. نیازتان را بنویسید</h3>
-              <p className="mt-2 text-xs leading-6 text-text-muted">
+              <p className="mt-2 text-sm leading-7 text-text-muted">
                 نوع بیمه و اولویت‌های تشخیص‌داده‌شده را پیش از ادامه تأیید کنید.
               </p>
               <span className="mt-4 inline-flex rounded-lg bg-surface-raised px-3 py-2 text-xs text-text-muted">
@@ -132,8 +149,8 @@ export default async function HomePage() {
             <article className="rounded-2xl bg-surface-muted p-5">
               <Layers3 className="text-info" size={22} aria-hidden="true" />
               <h3 className="mt-3 text-base font-extrabold">۲. پوشش‌ها را کنار هم ببینید</h3>
-              <p className="mt-2 text-xs leading-6 text-text-muted">
-                مقادیر و استثناهای طرح‌های نمونه را با امتیاز نسبی مقایسه کنید.
+              <p className="mt-2 text-sm leading-7 text-text-muted">
+                مقادیر و موارد بدون پوشش را همراه با امتیاز نسبی مقایسه کنید.
               </p>
               <div className="mt-4 flex gap-2">
                 <Badge tone="success">پوشش دارد</Badge>
@@ -143,8 +160,8 @@ export default async function HomePage() {
             <article className="rounded-2xl bg-surface-muted p-5">
               <BookOpenText className="text-success" size={22} aria-hidden="true" />
               <h3 className="mt-3 text-base font-extrabold">۳. متن پشتیبان را بخوانید</h3>
-              <p className="mt-2 text-xs leading-6 text-text-muted">
-                منبع هر مقدار را باز کنید؛ نقل‌قول به‌تنهایی جای متن کامل را نمی‌گیرد.
+              <p className="mt-2 text-sm leading-7 text-text-muted">
+                منبع هر مقدار مشخص را باز کنید؛ نقل‌قول به‌تنهایی جای متن کامل را نمی‌گیرد.
               </p>
               <span className="mt-4 inline-flex rounded-lg bg-surface-raised px-3 py-2 text-xs font-bold text-success">
                 نقل‌قول از متن نمونه

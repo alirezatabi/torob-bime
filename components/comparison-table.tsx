@@ -2,7 +2,12 @@
 import { useState } from "react";
 import { Check, Minus, X } from "lucide-react";
 import { faNumber, formatValue } from "@/lib/domain/format";
-import { getCoverage, relativeFieldScore, type RankedProduct } from "@/lib/domain/ranking";
+import {
+  evidenceBackedValue,
+  getCoverage,
+  relativeFieldScore,
+  type RankedProduct,
+} from "@/lib/domain/ranking";
 import type { CoverageField, InsuranceSchema } from "@/lib/schemas/contracts";
 import { EvidenceButton, type SourceHandler } from "./evidence-button";
 import { IconButton } from "./ui/button";
@@ -34,9 +39,7 @@ function Table({
       field,
       differs:
         new Set(
-          compared.map(({ product }) =>
-            JSON.stringify(getCoverage(product, field.key)?.value ?? null),
-          ),
+          compared.map(({ product }) => JSON.stringify(evidenceBackedValue(product, field.key))),
         ).size > 1,
     }))
     .filter((row) => !hideIdentical || row.differs);
@@ -47,7 +50,12 @@ function Table({
   }
   const products = compared.map(({ product }) => product);
   return (
-    <div className="scrollbar-thin max-h-[72vh] overflow-auto rounded-2xl border border-border bg-surface-raised">
+    <div
+      role="region"
+      aria-label="جدول مقایسه قابل پیمایش"
+      tabIndex={0}
+      className="scrollbar-thin max-h-[72vh] overflow-auto rounded-2xl border border-border bg-surface-raised"
+    >
       <table
         className="w-full table-fixed border-collapse text-start"
         style={{ minWidth: `${180 + compared.length * 160}px` }}
@@ -143,7 +151,7 @@ function Group({
       }
       {rows.map(({ field, differs }) => {
         const knownValues = products
-          .map((product) => getCoverage(product, field.key)?.value ?? null)
+          .map((product) => evidenceBackedValue(product, field.key))
           .filter((value) => value !== null);
         const hasComparison =
           knownValues.length >= 2 &&
@@ -168,7 +176,7 @@ function Group({
             </th>
             {compared.map(({ product }) => {
               const coverage = getCoverage(product, field.key);
-              const value = coverage?.value ?? null;
+              const value = evidenceBackedValue(product, field.key);
               const isBest =
                 hasComparison &&
                 !field.isExclusion &&
@@ -202,8 +210,8 @@ function Group({
                     <Tooltip
                       label={`چرا ${field.labelFa} در ${product.nameFa}، ${product.insurerNameFa} نامشخص است؟`}
                     >
-                      در متن نمونه شاهد کافی برای این مقدار پیدا نشده است؛ نامشخص به معنی نداشتن
-                      پوشش نیست.
+                      در متن {product.isSampleData ? "نمونه" : "بیمه‌نامه"} شاهد کافی برای این مقدار
+                      پیدا نشده است؛ نامشخص به معنی نداشتن پوشش نیست.
                     </Tooltip>
                   )}
                   <EvidenceButton
@@ -241,8 +249,17 @@ export function ComparisonTable({
     ) ?? compared.find((item) => item.product.slug !== a?.product.slug);
   const mobile = [a, b].filter((item): item is RankedProduct => Boolean(item));
   const identical = schema.fields.length - rows.filter((row) => row.differs).length;
+  const mobileIdentical = schema.fields.filter(
+    (field) =>
+      new Set(mobile.map(({ product }) => JSON.stringify(evidenceBackedValue(product, field.key))))
+        .size <= 1,
+  ).length;
   return (
-    <section aria-labelledby="table-title" className="mt-12 scroll-mt-24">
+    <section
+      id="comparison-details"
+      aria-labelledby="table-title"
+      className="mt-12 scroll-mt-6 md:scroll-mt-36"
+    >
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold text-brand-strong">جزئیات، کنار هم</p>
@@ -250,16 +267,20 @@ export function ComparisonTable({
             جدول مقایسه پوشش‌ها
           </h2>
           <p className="mt-2 text-sm text-text-muted">
-            ردیف‌های متفاوت مشخص شده‌اند؛ برای بررسی هر مقدار، منبع آن را باز کنید.
+            ردیف‌های متفاوت مشخص شده‌اند؛ برای بررسی مقادیر مشخص، منبع را باز کنید.
           </p>
         </div>
         <Checkbox
           checked={hideIdentical}
           onChange={(event) => setHideIdentical(event.target.checked)}
         >
-          پنهان‌کردن ردیف‌های مشابه ({faNumber(identical)})
+          پنهان‌کردن ردیف‌های مشابه <span className="md:hidden">({faNumber(mobileIdentical)})</span>
+          <span className="hidden md:inline">({faNumber(identical)})</span>
         </Checkbox>
       </div>
+      <p className="mb-3 text-xs leading-7 text-text-muted md:hidden">
+        دو طرح را برای جدول انتخاب کنید؛ انتخاب طرح تکراری جای آن‌ها را عوض می‌کند.
+      </p>
       <div className="mb-3 grid grid-cols-2 gap-3 md:hidden">
         {([a, b] as const).map((item, index) => {
           const id = `comparison-plan-${index + 1}`;
@@ -319,8 +340,8 @@ export function ComparisonTable({
           selectionCount={compared.length}
         />
       </div>
-      <p className="mt-3 text-xs leading-6 text-text-muted">
-        «نامشخص» به معنی نداشتن پوشش نیست. در نمایش کوچک، دو طرح را برای جدول انتخاب کنید.
+      <p className="mt-3 text-xs leading-7 text-text-muted">
+        «نامشخص» به معنی نداشتن پوشش نیست. در صورت نیاز، برای دیدن ستون‌ها جدول را افقی پیمایش کنید.
       </p>
     </section>
   );

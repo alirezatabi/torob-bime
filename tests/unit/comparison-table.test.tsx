@@ -42,6 +42,38 @@ it("explains an unknown value without presenting it as an exclusion", () => {
   expect(html).toContain("<details");
 });
 
+it("renders an ungrounded non-null value as unknown, not as a sourced coverage", () => {
+  const { sourceText, ...data } = sample[0];
+  const coverages = groundExtraction(
+    extractOffline(carBodySchema, sourceText),
+    carBodySchema,
+    sourceText,
+  ).values;
+  const known = { ...data, coverages };
+  const ungrounded = {
+    ...known,
+    slug: "ungrounded",
+    nameFa: "طرح بی‌شاهد",
+    coverages: coverages.map((coverage) =>
+      coverage.fieldKey === "collision" ? { ...coverage, value: false, evidence: null } : coverage,
+    ),
+  };
+  const compared = rankProducts([known, ungrounded], carBodySchema, []);
+  const html = renderToStaticMarkup(
+    <ComparisonTable
+      schema={carBodySchema}
+      compared={compared}
+      rows={carBodySchema.fields.map((field) => ({ field, differs: true }))}
+      hideIdentical={false}
+      setHideIdentical={() => {}}
+      onToggle={() => {}}
+      onSource={() => {}}
+    />,
+  );
+  expect(html).toContain("چرا تصادف و برخورد در طرح بی‌شاهد");
+  expect(html).not.toContain("نمایش منبع تصادف و برخورد در طرح بی‌شاهد");
+});
+
 it("reserves 160px per plan and a 180px label column for six plans", () => {
   const { sourceText, ...data } = sample[0];
   const coverages = groundExtraction(

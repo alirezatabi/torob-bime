@@ -49,6 +49,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html
       lang="fa"
       dir="rtl"
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${arabic.variable} ${latin.variable}`}
     >

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, BookOpenText, Check, Minus, X } from "lucide-react";
-import { getCoverage } from "@/lib/domain/ranking";
+import { evidenceBackedValue } from "@/lib/domain/ranking";
 import { formatValue } from "@/lib/domain/format";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
 import { ProvenanceText } from "./provenance";
 import { InsurerMark } from "./ui/identity";
+import { LinkStatus } from "./ui/link-status";
 export function HeroPreview({
   schema,
   products,
@@ -56,7 +57,7 @@ export function HeroPreview({
             >
               <span className="text-xs font-bold leading-6 text-text-muted">{field.labelFa}</span>
               {shown.map((product) => {
-                const value = getCoverage(product, field.key)?.value ?? null;
+                const value = evidenceBackedValue(product, field.key);
                 return (
                   <span
                     key={product.slug}
@@ -75,22 +76,26 @@ export function HeroPreview({
               })}
             </div>
           ))}
-          <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-soft p-3 text-xs leading-6 text-brand-strong">
+          <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-soft p-3 text-xs leading-7 text-brand-strong">
             <BookOpenText size={17} className="mt-1 shrink-0" aria-hidden="true" />
             <span>
-              هر مقدار قابل بررسی است.{" "}
-              {shown.length ? (
-                <ProvenanceText provenance={shown[0].provenance} />
-              ) : (
-                "اطلاعات نمونه در دسترس نیست."
-              )}
+              منبع مقادیر مشخص در صفحه مقایسه قابل بررسی است.
+              <span className="block">
+                {shown.length ? (
+                  <>
+                    روش استخراج طرح اول: <ProvenanceText provenance={shown[0].provenance} />
+                  </>
+                ) : (
+                  "اطلاعات نمونه در دسترس نیست."
+                )}
+              </span>
             </span>
           </div>
           <Link
             href={`/compare/${schema.slug}`}
             className="mt-3 inline-flex min-h-11 items-center gap-2 text-xs font-bold text-brand-strong"
           >
-            دیدن مقایسه <ArrowLeft size={16} aria-hidden="true" />
+            دیدن مقایسه <ArrowLeft size={16} aria-hidden="true" /> <LinkStatus />
           </Link>
         </div>
       </div>

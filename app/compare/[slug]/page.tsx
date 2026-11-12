@@ -2,13 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, Info } from "lucide-react";
-import { Suspense } from "react";
 import { ComparisonExperience } from "@/components/comparison-experience";
 import { getCatalogue } from "@/lib/data/catalog";
 import { aiConfigured } from "@/lib/ai/anthropic";
 import { activeSchemas } from "@/lib/schemas/registry";
-import { readComparisonState } from "@/lib/domain/comparison-query";
-import { Skeleton } from "@/components/ui/surfaces";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -26,35 +23,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 export default async function ComparePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  // Validate before the streaming boundary so unknown categories return HTTP 404.
   if (!activeSchemas.some((schema) => schema.slug === slug)) notFound();
-  return (
-    <Suspense fallback={<CompareLoading />}>
-      <ComparisonContent slug={slug} searchParams={searchParams} />
-    </Suspense>
-  );
-}
-function CompareLoading() {
-  return (
-    <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8" aria-live="polite">
-      <p className="sr-only">در حال آماده‌سازی مقایسه...</p>
-      <Skeleton className="h-6 w-40" />
-      <Skeleton className="mt-5 h-20 w-full" />
-      <Skeleton className="mt-6 h-32 w-full" />
-      <Skeleton className="mt-12 h-8 w-56" />
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((item) => (
-          <div key={item} className="rounded-2xl border border-border bg-surface-raised p-5">
-            <Skeleton className="h-12 w-12" />
-            <Skeleton className="mt-5 h-5 w-2/3" />
-            <Skeleton className="mt-5 h-20 w-full" />
-            <Skeleton className="mt-5 h-32 w-full" />
-            <Skeleton className="mt-5 h-11 w-full" />
-          </div>
-        ))}
-      </div>
-    </main>
-  );
+  // Keep this URL-driven island out of a streamed Suspense boundary. Otherwise
+  // consecutive history traversals before hydration can strand stale SSR controls.
+  return <ComparisonContent slug={slug} searchParams={searchParams} />;
 }
 async function ComparisonContent({
   slug,
@@ -69,7 +41,6 @@ async function ComparisonContent({
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(raw))
     if (typeof value === "string") query.set(key, value);
-  const initial = readComparisonState(query, catalogue.schema, catalogue.products);
   if (catalogue.products.length < 2) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-20 text-center">
@@ -120,7 +91,7 @@ async function ComparisonContent({
       <ComparisonExperience
         schema={catalogue.schema}
         products={catalogue.products}
-        initial={initial}
+        initialQuery={query.toString()}
         hasAi={aiConfigured()}
         catalogueNotice={notice}
       />

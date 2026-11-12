@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LoaderCircle, Search, X } from "lucide-react";
 import { userIntentSchema, type UserIntent } from "@/lib/schemas/contracts";
@@ -18,6 +18,7 @@ const examples = [
 export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [navigating, startNavigation] = useTransition();
   const [clarify, setClarify] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [intent, setIntent] = useState<UserIntent | null>(null);
@@ -84,7 +85,7 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
       params.set("budget", String(intent.budgetToman));
     // This is an untrusted URL hint, not proof of a model call; the comparison does not claim it as model provenance.
     params.set("intent", intent.mode);
-    router.push(`/compare/${intent.typeSlug}?${params.toString()}`);
+    startNavigation(() => router.push(`/compare/${intent.typeSlug}?${params.toString()}`));
   }
   return (
     <div>
@@ -184,17 +185,21 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
           className="mt-4 rounded-2xl border border-brand bg-surface-raised p-4 shadow-card"
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-extrabold">فهمیدم:</h2>
+            <h2 className="text-lg font-extrabold">برداشت ما از نیاز شما</h2>
             <Badge tone={intent.mode === "ai" ? "info" : "neutral"}>
               {intent.mode === "ai" ? "تشخیص با مدل" : "تشخیص قانون‌محور"}
             </Badge>
           </div>
+          <p className="mt-2 text-sm leading-7 text-text-muted">
+            پیش از مقایسه، نوع بیمه و اولویت‌ها را بررسی کنید.
+          </p>
           <div className="mt-4">
             <FieldLabel htmlFor="intent-type">نوع بیمه</FieldLabel>
             <div className="mt-2">
               <SelectInput
                 id="intent-type"
                 value={intent.typeSlug ?? ""}
+                describedBy="intent-type-hint"
                 onValueChange={(typeSlug) =>
                   setIntent({ ...intent, typeSlug, priorities: [], constraints: [] })
                 }
@@ -203,6 +208,11 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
                   label: schema.nameFa,
                 }))}
               />
+            </div>
+            <div className="mt-1">
+              <FieldHint id="intent-type-hint">
+                با تغییر نوع بیمه، اولویت‌ها و شرط‌های قبلی پاک می‌شوند.
+              </FieldHint>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -262,13 +272,30 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
             می‌توانید موردی را حذف کنید یا برای تغییر متن دوباره جست‌وجو کنید. بودجه فقط با حق‌بیمه
             سالانه نمونه سنجیده می‌شود.
           </p>
-          <Button onClick={continueToComparison} className="mt-3 w-full sm:w-auto">
-            ادامه به مقایسه <ArrowLeft size={17} aria-hidden="true" />
+          <Button
+            onClick={continueToComparison}
+            disabled={navigating}
+            aria-busy={navigating}
+            className="mt-3 w-full sm:w-auto"
+          >
+            {navigating ? (
+              <>
+                <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />
+                در حال آماده‌سازی مقایسه...
+              </>
+            ) : (
+              <>
+                ادامه به مقایسه <ArrowLeft size={17} aria-hidden="true" />
+              </>
+            )}
           </Button>
+          <span role="status" className="sr-only">
+            {navigating ? "در حال آماده‌سازی مقایسه" : ""}
+          </span>
         </section>
       )}
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-bold text-text-muted">برای نمونه:</span>
+        <span className="text-xs font-bold text-text-muted">یکی از نمونه‌ها را امتحان کنید:</span>
         {examples.map((example) => (
           <button
             key={example.label}
