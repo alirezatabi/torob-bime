@@ -45,6 +45,7 @@ describe("cross-platform Prisma generation", () => {
     };
     for (const name of [
       "@next/swc-win32-x64-msvc",
+      "@tailwindcss/oxide-win32-x64-msvc",
       "@esbuild/win32-x64",
       "@rollup/rollup-win32-x64-msvc",
     ]) {
