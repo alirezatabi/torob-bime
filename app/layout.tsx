@@ -63,18 +63,20 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         />
       </head>
       <body>
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface-raised focus:p-3 focus:text-text"
-        >
-          رفتن به محتوای اصلی
-        </a>
-        <div className="flex min-h-screen flex-col">
-          <SiteHeader />
-          <div id="main-content" className="flex-1">
-            {children}
+        <div id="app-shell">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-surface-raised focus:p-3 focus:text-text"
+          >
+            رفتن به محتوای اصلی
+          </a>
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader />
+            <div id="main-content" className="flex-1">
+              {children}
+            </div>
+            <SiteFooter />
           </div>
-          <SiteFooter />
         </div>
       </body>
     </html>

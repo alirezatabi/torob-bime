@@ -11,7 +11,7 @@ test("Persian need to ranked comparison, limitations, and exact source", async (
   await page.getByRole("button", { name: "ادامه به مقایسه" }).click();
   await expect(page).toHaveURL(/\/compare\/car-body/);
   await expect(page.getByRole("heading", { name: "بیمه بدنه خودرو", level: 1 })).toBeVisible();
-  await expect(page.getByText("داده‌های نمونه و ساختگی:")).toBeVisible();
+  await expect(page.getByText("داده‌های نمونه و ساختگی:", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "خسارت جزئی و خط‌وخش", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");

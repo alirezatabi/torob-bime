@@ -6,6 +6,7 @@ import { getCoverage, relativeFieldScore, type RankedProduct } from "@/lib/domai
 import type { CoverageField, InsuranceSchema } from "@/lib/schemas/contracts";
 import { EvidenceButton, type SourceHandler } from "./evidence-button";
 import { IconButton } from "./ui/button";
+import { Checkbox, FieldLabel, SelectInput } from "./ui/field";
 import { Tooltip } from "./ui/surfaces";
 
 type Row = { field: CoverageField; differs: boolean };
@@ -252,51 +253,51 @@ export function ComparisonTable({
             ردیف‌های متفاوت مشخص شده‌اند؛ برای بررسی هر مقدار، منبع آن را باز کنید.
           </p>
         </div>
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-xs font-bold text-text-muted">
-          <input
-            type="checkbox"
-            checked={hideIdentical}
-            onChange={(event) => setHideIdentical(event.target.checked)}
-            className="h-5 w-5 accent-brand"
-          />
+        <Checkbox
+          checked={hideIdentical}
+          onChange={(event) => setHideIdentical(event.target.checked)}
+        >
           پنهان‌کردن ردیف‌های مشابه ({faNumber(identical)})
-        </label>
+        </Checkbox>
       </div>
-      <div className="mb-3 grid grid-cols-2 gap-2 md:hidden">
-        {([a, b] as const).map((item, index) => (
-          <label key={index} className="text-xs font-bold text-text-muted">
-            طرح {index === 0 ? "اول" : "دوم"}
-            <select
-              aria-label={`انتخاب طرح ${index === 0 ? "اول" : "دوم"}`}
-              value={item?.product.slug ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                setPair(
-                  index === 0
-                    ? [
-                        value,
-                        value === b?.product.slug
-                          ? (a?.product.slug ?? "")
-                          : (b?.product.slug ?? ""),
-                      ]
-                    : [
-                        value === a?.product.slug
-                          ? (b?.product.slug ?? "")
-                          : (a?.product.slug ?? ""),
-                        value,
-                      ],
-                );
-              }}
-              className="mt-1 min-h-11 w-full rounded-xl border border-border bg-surface-raised px-2 text-xs text-text"
-            >
-              {compared.map(({ product }) => (
-                <option key={product.slug} value={product.slug}>
-                  {product.nameFa} · {product.insurerNameFa}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+      <div className="mb-3 grid grid-cols-2 gap-3 md:hidden">
+        {([a, b] as const).map((item, index) => {
+          const id = `comparison-plan-${index + 1}`;
+          const name = index === 0 ? "اول" : "دوم";
+          return (
+            <div key={id} className="min-w-0">
+              <FieldLabel htmlFor={id}>طرح {name}</FieldLabel>
+              <div className="mt-2">
+                <SelectInput
+                  id={id}
+                  label={`انتخاب طرح ${name}`}
+                  value={item?.product.slug ?? ""}
+                  onValueChange={(value) => {
+                    setPair(
+                      index === 0
+                        ? [
+                            value,
+                            value === b?.product.slug
+                              ? (a?.product.slug ?? "")
+                              : (b?.product.slug ?? ""),
+                          ]
+                        : [
+                            value === a?.product.slug
+                              ? (b?.product.slug ?? "")
+                              : (a?.product.slug ?? ""),
+                            value,
+                          ],
+                    );
+                  }}
+                  options={compared.map(({ product }) => ({
+                    value: product.slug,
+                    label: `${product.nameFa} · ${product.insurerNameFa}`,
+                  }))}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
       <div className="md:hidden">
         <Table

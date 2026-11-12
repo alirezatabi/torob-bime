@@ -1,13 +1,14 @@
 "use client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LoaderCircle, Search, Sparkles, X } from "lucide-react";
+import { ArrowLeft, LoaderCircle, Search, X } from "lucide-react";
 import { userIntentSchema, type UserIntent } from "@/lib/schemas/contracts";
 import { containsSensitiveContact } from "@/lib/domain/text";
-import { formatMoney } from "@/lib/domain/format";
+import { faNumber, formatMoney } from "@/lib/domain/format";
 import { activeSchemas } from "@/lib/schemas/registry";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/surfaces";
+import { FieldError, FieldHint, FieldLabel, SelectInput, TextArea } from "./ui/field";
 
 const examples = [
   { label: "سفر شنگن", text: "برای سفر شنگن بیمه با پوشش درمان می‌خواهم" },
@@ -20,7 +21,6 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
   const [clarify, setClarify] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [intent, setIntent] = useState<UserIntent | null>(null);
-  const [exampleIndex, setExampleIndex] = useState(0);
   const textArea = useRef<HTMLTextAreaElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -94,45 +94,50 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
           event.preventDefault();
           void analyze(text);
         }}
-        className="rounded-2xl border border-border bg-surface-raised p-2 shadow-float transition focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20"
+        aria-busy={loading}
+        className="rounded-3xl border border-border bg-surface-raised p-4 shadow-float sm:p-5"
       >
-        <label htmlFor="insurance-need" className="sr-only">
-          نیاز بیمه‌ای خود را بنویسید
-        </label>
-        <div className="flex items-start gap-3 px-3 pt-4">
-          <Search size={21} className="mt-1 shrink-0 text-brand-strong" aria-hidden="true" />
-          <textarea
-            ref={textArea}
-            id="insurance-need"
-            value={text}
-            onFocus={() => setExampleIndex((i) => (i + 1) % examples.length)}
-            onChange={(event) => {
-              setText(event.target.value);
-              setClarify(null);
-              setIntent(null);
-              setError(null);
-            }}
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing &&
-                event.keyCode !== 229
-              ) {
-                event.preventDefault();
-                form.current?.requestSubmit();
-              }
-            }}
-            rows={2}
-            maxLength={500}
-            placeholder={`مثلاً ${examples[exampleIndex].text}...`}
-            className="min-h-[72px] w-full resize-none border-0 bg-transparent text-base leading-8 text-text placeholder:text-text-muted"
-          />
+        <div className="flex items-center justify-between gap-3">
+          <FieldLabel htmlFor="insurance-need">نیاز بیمه‌ای خود را بنویسید</FieldLabel>
+          <Search size={20} className="shrink-0 text-brand-strong" aria-hidden="true" />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-2 pt-2">
-          <span className="flex items-center gap-2 text-xs text-text-muted">
-            <Sparkles size={16} className="text-brand-strong" aria-hidden="true" /> نیاز خود را به
-            زبان ساده بنویسید
+        <TextArea
+          ref={textArea}
+          id="insurance-need"
+          value={text}
+          disabled={loading}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={`insurance-need-hint${error ? " insurance-need-error" : ""}`}
+          onChange={(event) => {
+            setText(event.target.value);
+            setClarify(null);
+            setIntent(null);
+            setError(null);
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Enter" &&
+              !event.shiftKey &&
+              !event.nativeEvent.isComposing &&
+              event.keyCode !== 229
+            ) {
+              event.preventDefault();
+              form.current?.requestSubmit();
+            }
+          }}
+          rows={3}
+          maxLength={500}
+          placeholder="مثلاً برای خودرو بیمه‌ای می‌خواهم که خسارت جزئی را پوشش دهد."
+          className="mt-3"
+        />
+        {error && (
+          <div className="mt-2">
+            <FieldError id="insurance-need-error">{error}</FieldError>
+          </div>
+        )}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs text-text-muted" aria-hidden="true">
+            {faNumber(text.length)} / ۵۰۰ نویسه
           </span>
           <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             {loading && <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />}
@@ -140,18 +145,18 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
             {!loading && <ArrowLeft size={17} aria-hidden="true" />}
           </Button>
         </div>
+        <span role="status" className="sr-only">
+          {loading ? "در حال بررسی نیاز شما" : ""}
+        </span>
       </form>
-      <p className="mt-3 text-xs leading-6 text-text-muted">
-        {aiEnabled
-          ? "برای تحلیل، متن شما به Anthropic ارسال می‌شود. "
-          : "تحلیل در این نسخه قانون‌محور و آفلاین است. "}
-        لطفاً اطلاعات شخصی یا پزشکی حساس وارد نکنید.
-      </p>
-      {error && (
-        <p role="alert" className="mt-3 rounded-xl bg-danger-soft p-3 text-sm text-danger">
-          {error}
-        </p>
-      )}
+      <div className="mt-3">
+        <FieldHint id="insurance-need-hint">
+          {aiEnabled
+            ? "برای تحلیل، متن شما به Anthropic ارسال می‌شود. "
+            : "تحلیل در این نسخه قانون‌محور و آفلاین است. "}
+          اطلاعات شخصی یا پزشکی حساس وارد نکنید.
+        </FieldHint>
+      </div>
       {clarify && (
         <div
           className="mt-4 rounded-2xl border border-border bg-surface-raised p-4 shadow-card"
@@ -184,28 +189,22 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
               {intent.mode === "ai" ? "تشخیص با مدل" : "تشخیص قانون‌محور"}
             </Badge>
           </div>
-          <label className="mt-3 block text-xs font-bold text-text-muted" htmlFor="intent-type">
-            نوع بیمه
-          </label>
-          <select
-            id="intent-type"
-            value={intent.typeSlug ?? ""}
-            onChange={(event) =>
-              setIntent({
-                ...intent,
-                typeSlug: event.target.value,
-                priorities: [],
-                constraints: [],
-              })
-            }
-            className="mt-1 min-h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm text-text"
-          >
-            {activeSchemas.map((schema) => (
-              <option key={schema.slug} value={schema.slug}>
-                {schema.nameFa}
-              </option>
-            ))}
-          </select>
+          <div className="mt-4">
+            <FieldLabel htmlFor="intent-type">نوع بیمه</FieldLabel>
+            <div className="mt-2">
+              <SelectInput
+                id="intent-type"
+                value={intent.typeSlug ?? ""}
+                onValueChange={(typeSlug) =>
+                  setIntent({ ...intent, typeSlug, priorities: [], constraints: [] })
+                }
+                options={activeSchemas.map((schema) => ({
+                  value: schema.slug,
+                  label: schema.nameFa,
+                }))}
+              />
+            </div>
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {intent.priorities.map((key) => {
               const field = selectedSchema.fields.find((item) => item.key === key);

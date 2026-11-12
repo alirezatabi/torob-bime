@@ -20,6 +20,7 @@ import { ComparisonTable } from "./comparison-table";
 import { EvidenceButton, type SourceHandler } from "./evidence-button";
 import { Badge, Chip, Disclosure, Toast } from "./ui/surfaces";
 import { Button, IconButton } from "./ui/button";
+import { FieldError, FieldHint, FieldLabel, TextInput } from "./ui/field";
 
 const explanationResponse = z.object({
   mode: z.enum(["ai", "rules"]),
@@ -300,8 +301,14 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            const raw = String(new FormData(event.currentTarget).get("budget") ?? "");
+            const form = event.currentTarget;
+            const raw = String(new FormData(form).get("budget") ?? "");
             const normalized = toLatinDigits(raw).replace(/[٬,\s]/g, "");
+            if (!normalized) {
+              setBudgetError("");
+              changeQuery("budget", "");
+              return;
+            }
             const amount = Number(normalized);
             if (
               !/^\d{1,13}$/.test(normalized) ||
@@ -309,49 +316,67 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
               amount <= 0 ||
               amount > 1_000_000_000_000
             ) {
-              setBudgetError("بودجه سالانه را به صورت عددی بزرگ‌تر از صفر وارد کنید.");
+              setBudgetError("عدد بزرگ‌تر از صفر و حداکثر هزار میلیارد تومان وارد کنید.");
+              form.querySelector<HTMLInputElement>("[name=budget]")?.focus();
               return;
             }
             setBudgetError("");
             changeQuery("budget", String(amount));
           }}
-          className="mt-5 flex flex-wrap items-end gap-2 border-t border-border pt-4"
+          className="mt-5 border-t border-border pt-5"
         >
-          <label className="min-w-[190px] flex-1 text-xs font-bold text-text-muted">
-            بودجه سالانه برای مقایسه نمونه (تومان)
-            <input
-              key={budget ?? "empty"}
-              name="budget"
-              inputMode="numeric"
-              defaultValue={budget ?? ""}
-              placeholder="اختیاری"
-              className="mt-2 min-h-11 w-full rounded-xl border border-border bg-surface-raised px-3 text-sm text-text"
-            />
-          </label>
-          <Button variant="secondary" type="submit">
-            اعمال بودجه
-          </Button>
-          {budget !== null && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setBudgetError("");
-                changeQuery("budget", "");
-              }}
-            >
-              حذف بودجه
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[190px] flex-1">
+              <FieldLabel htmlFor="budget-input" optional>
+                بودجه سالانه برای مقایسه نمونه
+              </FieldLabel>
+              <div className="mt-2">
+                <TextInput
+                  key={budget ?? "empty"}
+                  id="budget-input"
+                  name="budget"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  dir="ltr"
+                  defaultValue={budget ?? ""}
+                  maxLength={24}
+                  placeholder="مثلاً ۱۰٬۰۰۰٬۰۰۰"
+                  suffix="تومان"
+                  aria-invalid={budgetError ? true : undefined}
+                  aria-describedby={`budget-hint${budgetError ? " budget-error" : ""}`}
+                  onChange={() => setBudgetError("")}
+                  className="text-end"
+                />
+              </div>
+            </div>
+            <Button variant="secondary" type="submit" className="min-h-12">
+              اعمال بودجه
             </Button>
-          )}
-          <p className="w-full text-xs leading-6 text-text-muted">
-            {budget !== null
-              ? `بودجه ${formatMoney(budget)} با حق‌بیمه‌های سالانه ساختگی سنجیده می‌شود. `
-              : ""}
-            این مبلغ در پیوند قابل اشتراک قرار می‌گیرد و هیچ قیمت واقعی نیست.
-          </p>
+            {budget !== null && (
+              <Button
+                variant="ghost"
+                className="min-h-12"
+                onClick={() => {
+                  setBudgetError("");
+                  changeQuery("budget", "");
+                }}
+              >
+                حذف بودجه
+              </Button>
+            )}
+          </div>
+          <div className="mt-2">
+            <FieldHint id="budget-hint">
+              {budget !== null
+                ? `بودجه ${formatMoney(budget)} با حق‌بیمه‌های سالانه ساختگی سنجیده می‌شود. `
+                : "ارقام فارسی یا انگلیسی را وارد کنید. "}
+              این مبلغ در پیوند قابل اشتراک قرار می‌گیرد و هیچ قیمت واقعی نیست.
+            </FieldHint>
+          </div>
           {budgetError && (
-            <p role="alert" className="w-full text-xs text-danger">
-              {budgetError}
-            </p>
+            <div className="mt-2">
+              <FieldError id="budget-error">{budgetError}</FieldError>
+            </div>
           )}
         </form>
       </section>

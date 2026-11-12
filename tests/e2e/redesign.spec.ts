@@ -14,7 +14,9 @@ test("Enter submits only outside IME; confirmation is editable before navigation
   const confirmation = page.getByRole("region", { name: "تأیید برداشت از نیاز" });
   await expect(confirmation).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
-  await expect(confirmation.getByLabel("نوع بیمه")).toHaveValue("travel");
+  await expect(confirmation.getByRole("combobox", { name: "نوع بیمه" })).toContainText(
+    "بیمه مسافرتی",
+  );
   await confirmation
     .getByRole("button", { name: /حذف اولویت/ })
     .first()
@@ -124,30 +126,25 @@ test("hero preview enters once and honors reduced-motion preferences", async ({ 
 test("mobile two-plan selectors remain distinct and update the table", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/compare/car-body");
-  const first = page.getByLabel("انتخاب طرح اول");
-  const second = page.getByLabel("انتخاب طرح دوم");
-  const initialFirst = await first.inputValue();
-  const initialSecond = await second.inputValue();
+  const first = page.getByRole("combobox", { name: "انتخاب طرح اول" });
+  const second = page.getByRole("combobox", { name: "انتخاب طرح دوم" });
+  const initialFirst = (await first.textContent())!.trim();
+  const initialSecond = (await second.textContent())!.trim();
   expect(initialFirst).not.toBe(initialSecond);
-  await first.selectOption(initialSecond);
-  await expect(first).toHaveValue(initialSecond);
-  await expect(second).toHaveValue(initialFirst);
+  await first.click();
+  await page.getByRole("option", { name: initialSecond, exact: true }).click();
+  await expect(first).toHaveText(initialSecond);
+  await expect(second).toHaveText(initialFirst);
   const table = page.getByRole("table", { name: /مقایسه پوشش‌های/ });
   await expect(table.locator("thead th")).toHaveCount(3);
-  const newFirstLabel = await first.locator("option:checked").textContent();
-  await expect(table.locator("thead th").nth(1)).toContainText(newFirstLabel!.split(" · ")[0]);
-  const third = await second
-    .locator("option")
-    .evaluateAll(
-      (options, selected) =>
-        options
-          .map((option) => (option as HTMLOptionElement).value)
-          .find((value) => !selected.includes(value)),
-      [initialFirst, initialSecond],
-    );
+  await expect(table.locator("thead th").nth(1)).toContainText(initialSecond.split(" · ")[0]);
+  await second.click();
+  const labels = await page.getByRole("option").allTextContents();
+  const third = labels
+    .find((label) => ![initialFirst, initialSecond].includes(label.trim()))
+    ?.trim();
   expect(third).toBeTruthy();
-  await second.selectOption(third!);
-  await expect(second).toHaveValue(third!);
-  const newSecondLabel = await second.locator("option:checked").textContent();
-  await expect(table.locator("thead th").nth(2)).toContainText(newSecondLabel!.split(" · ")[0]);
+  await page.getByRole("option", { name: third!, exact: true }).click();
+  await expect(second).toHaveText(third!);
+  await expect(table.locator("thead th").nth(2)).toContainText(third!.split(" · ")[0]);
 });
