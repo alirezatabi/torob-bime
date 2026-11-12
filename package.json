@@ -29,7 +29,8 @@
     "snapshot": "tsx scripts/snapshot.ts",
     "dev:lan": "next dev -H 0.0.0.0",
     "start:lan": "next start -H 0.0.0.0",
-    "check:design": "node scripts/check-design-tokens.mjs"
+    "check:design": "node scripts/check-design-tokens.mjs",
+    "test:e2e:mock-ai": "playwright test --config=playwright.mock-ai.config.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
