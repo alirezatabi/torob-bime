@@ -207,7 +207,10 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge tone="warning">{faNumber(products.length)} طرح نمونه</Badge>
+            <Badge tone="warning">
+              {faNumber(products.length)} طرح
+              {products.every((product) => product.isSampleData) ? " نمونه" : ""}
+            </Badge>
             <Button variant="secondary" onClick={() => void copyLink()} className="text-xs">
               <Copy size={16} aria-hidden="true" /> کپی پیوند مقایسه
             </Button>

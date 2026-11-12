@@ -92,8 +92,8 @@ async function ComparisonContent({
     <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border bg-warning-soft p-4 text-xs leading-7 text-warning">
       <Info size={19} className="mt-1 shrink-0" aria-hidden="true" />
       <p>
-        <strong>داده‌های نمونه و ساختگی:</strong> شرکت‌ها، طرح‌ها، پوشش‌ها و حق‌بیمه‌ها واقعی
-        نیستند؛ این صفحه امکان خرید یا دریافت قیمت واقعی ندارد.
+        <strong>داده‌های نمونه و ساختگی:</strong> طرح‌های برچسب‌خورده با «نمونه»، همراه با شرکت،
+        پوشش‌ها و حق‌بیمه‌هایشان ساختگی‌اند؛ این صفحه امکان خرید یا دریافت قیمت واقعی ندارد.
         {catalogue.mode === "fallback" && (
           <span>
             {" "}

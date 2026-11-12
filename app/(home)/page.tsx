@@ -50,7 +50,7 @@ export default async function HomePage() {
               <p className="text-xs font-bold text-brand-strong">از اینجا شروع کنید</p>
               <h2 className="mt-2 text-2xl font-extrabold">به دنبال چه بیمه‌ای هستید؟</h2>
               <p className="mt-2 text-sm leading-7 text-text-muted">
-                یک دسته را انتخاب کنید و پوشش طرح‌های ساختگی را مقایسه کنید.
+                یک دسته را انتخاب کنید و پوشش طرح‌ها را مقایسه کنید؛ طرح‌های نمونه مشخص‌اند.
               </p>
             </div>
             <Link
@@ -80,13 +80,21 @@ export default async function HomePage() {
                     <div className="mt-5">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-lg font-extrabold">{catalogue.schema.nameFa}</h3>
-                        <Badge tone="warning">نمونه</Badge>
+                        {catalogue.products.length > 0 &&
+                          catalogue.products.every((product) => product.isSampleData) && (
+                            <Badge tone="warning">نمونه</Badge>
+                          )}
                       </div>
                       <p className="mt-1 text-xs leading-6 text-text-muted">
                         {catalogue.schema.descriptionFa}
                       </p>
                       <p className="mt-3 text-xs font-bold text-brand-strong">
-                        {faNumber(catalogue.products.length)} طرح نمونه ←
+                        {faNumber(catalogue.products.length)} طرح
+                        {catalogue.products.length > 0 &&
+                        catalogue.products.every((product) => product.isSampleData)
+                          ? " نمونه"
+                          : ""}{" "}
+                        ←
                       </p>
                     </div>
                   </Link>

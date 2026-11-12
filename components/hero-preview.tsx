@@ -29,7 +29,9 @@ export function HeroPreview({
             <h2 className="mt-1 text-lg font-extrabold">{schema.shortNameFa}</h2>
           </div>
           <span className="rounded-lg bg-warning-soft px-3 py-1 text-xs font-bold text-warning">
-            طرح‌های نمونه
+            {shown.length > 0 && shown.every((product) => product.isSampleData)
+              ? "طرح‌های نمونه"
+              : "پیش‌نمایش طرح‌ها"}
           </span>
         </div>
         <div className="p-5">
@@ -40,7 +42,10 @@ export function HeroPreview({
                 <div className="mx-auto mb-2 flex justify-center">
                   <InsurerMark slug={product.insurerSlug} name={product.insurerNameFa} />
                 </div>
-                <p className="text-xs font-bold">{product.nameFa}</p>
+                <p className="text-xs font-bold">
+                  {product.nameFa}
+                  {product.isSampleData ? " (نمونه)" : ""}
+                </p>
               </div>
             ))}
           </div>
@@ -85,7 +90,7 @@ export function HeroPreview({
             href={`/compare/${schema.slug}`}
             className="mt-3 inline-flex min-h-11 items-center gap-2 text-xs font-bold text-brand-strong"
           >
-            دیدن مقایسه نمونه <ArrowLeft size={16} aria-hidden="true" />
+            دیدن مقایسه <ArrowLeft size={16} aria-hidden="true" />
           </Link>
         </div>
       </div>
