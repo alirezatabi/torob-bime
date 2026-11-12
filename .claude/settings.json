@@ -4,14 +4,14 @@
       {
         "matcher": "Edit|Write",
         "hooks": [
-          { "type": "command", "command": "bash scripts/agent-edit-hook.sh", "timeout": 120 }
+          { "type": "command", "command": "node scripts/agent-edit-hook.mjs", "timeout": 120 }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash scripts/agent-edit-hook.sh", "timeout": 120 }
+          { "type": "command", "command": "node scripts/agent-edit-hook.mjs", "timeout": 120 }
         ]
       }
     ]

@@ -66,7 +66,7 @@ export default function RoadmapPage() {
             <div className="mt-4 inline-flex max-w-full items-center gap-2 overflow-auto rounded-xl bg-[#f7f8f9] px-4 py-3 text-[12px] text-[#63707d]">
               <Code2 size={15} className="shrink-0" aria-hidden="true" />
               <code dir="ltr" className="whitespace-nowrap">
-                pnpm add-type new-type &quot;نام بیمه&quot;
+                npm run add-type -- new-type &quot;نام بیمه&quot;
               </code>
             </div>
             <p className="mt-3 text-[11px] leading-6 text-[#63707d]">

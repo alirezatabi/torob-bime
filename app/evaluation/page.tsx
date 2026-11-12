@@ -46,7 +46,7 @@ export default async function EvaluationPage() {
       <main className="mx-auto max-w-2xl px-5 py-24 text-center">
         <h1 className="text-xl font-extrabold">گزارش ارزیابی در دسترس نیست</h1>
         <p className="mt-3 text-sm leading-7 text-muted">
-          برای ساخت گزارش، ابتدا دستور <code dir="ltr">pnpm eval</code> را اجرا کنید.
+          برای ساخت گزارش، ابتدا دستور <code dir="ltr">npm run eval</code> را اجرا کنید.
         </p>
         <Link href="/" className="mt-5 inline-block text-sm font-bold text-brand">
           بازگشت به خانه

@@ -11,7 +11,7 @@ async function main() {
   const path = process.argv[2];
   const offline = process.argv.includes("--offline");
   if (!path || path.startsWith("--"))
-    throw new Error("Usage: pnpm ingest <product-file.json> [--offline]");
+    throw new Error("Usage: npm run ingest -- <product-file.json> [--offline]");
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for persistence.");
   if (!offline && !aiConfigured())
     throw new Error(

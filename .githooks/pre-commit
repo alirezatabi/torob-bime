@@ -1,3 +1,10 @@
-#!/usr/bin/env bash
-set -euo pipefail
-pnpm test
+#!/usr/bin/env node
+// Git for Windows includes the shell that interprets this Node shebang.
+const { spawnSync } = require("node:child_process");
+const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const result = spawnSync(npm, ["test"], {
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});
+if (result.error) console.error(result.error.message);
+process.exit(result.status ?? 1);
