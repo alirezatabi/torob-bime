@@ -32,9 +32,6 @@
     "check:design": "node scripts/check-design-tokens.mjs",
     "test:e2e:mock-ai": "playwright test --config=playwright.mock-ai.config.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
     "@fontsource-variable/vazirmatn": "^5.2.8",
