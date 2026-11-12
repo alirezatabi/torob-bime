@@ -7,6 +7,8 @@ test("Persian need to ranked comparison, limitations, and exact source", async (
     .getByRole("textbox", { name: "نیاز بیمه‌ای خود را بنویسید" })
     .fill("ماشین نو خریدم و نگران تصادف جزئی‌ام");
   await page.getByRole("button", { name: "بگرد و مقایسه کن" }).click();
+  await expect(page.getByRole("region", { name: "تأیید برداشت از نیاز" })).toBeVisible();
+  await page.getByRole("button", { name: "ادامه به مقایسه" }).click();
   await expect(page).toHaveURL(/\/compare\/car-body/);
   await expect(page.getByRole("heading", { name: "بیمه بدنه خودرو", level: 1 })).toBeVisible();
   await expect(page.getByText("داده‌های نمونه و ساختگی:")).toBeVisible();
@@ -37,6 +39,7 @@ test("ambiguous need asks one clarifying question", async ({ page }) => {
   await page.getByRole("button", { name: "بگرد و مقایسه کن" }).click();
   await expect(page.getByText("دنبال کدام نوع بیمه هستید؟")).toBeVisible();
   await page.getByRole("button", { name: "بیمه مسافرتی" }).click();
+  await page.getByRole("button", { name: "ادامه به مقایسه" }).click();
   await expect(page).toHaveURL(/\/compare\/travel/);
 });
 
@@ -46,6 +49,7 @@ test("explicit coverage requirements affect the ordering and can be removed", as
     .getByRole("textbox", { name: "نیاز بیمه‌ای خود را بنویسید" })
     .fill("برای ماشین بیمه بدنه می‌خواهم، حتما خط و خش پوشش داشته باشد");
   await page.getByRole("button", { name: "بگرد و مقایسه کن" }).click();
+  await page.getByRole("button", { name: "ادامه به مقایسه" }).click();
   await expect(page).toHaveURL(/required=minor_damage/);
   const requirements = page.getByRole("region", { name: "شرط‌های الزامی پوشش" });
   await expect(requirements).toBeVisible();

@@ -1,15 +1,79 @@
-@import "@fontsource/vazirmatn/400.css";
-@import "@fontsource/vazirmatn/500.css";
-@import "@fontsource/vazirmatn/600.css";
-@import "@fontsource/vazirmatn/700.css";
-@import "@fontsource/vazirmatn/800.css";
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* The only color definitions live here; all component colors are semantic roles. */
+:root,
+html[data-theme="light"] {
   color-scheme: light;
+  --surface: 249 250 249;
+  --surface-muted: 242 245 244;
+  --surface-raised: 255 255 255;
+  --border: 221 227 225;
+  --text: 29 40 38;
+  --text-muted: 76 91 88;
+  --brand: 183 38 53;
+  --brand-strong: 147 27 40;
+  --brand-soft: 255 238 238;
+  --on-brand: 255 255 255;
+  --success: 29 105 68;
+  --success-soft: 230 245 235;
+  --warning: 126 78 25;
+  --warning-soft: 255 246 229;
+  --danger: 163 39 49;
+  --danger-soft: 255 238 236;
+  --info: 42 87 121;
+  --info-soft: 233 243 250;
+  --shadow-card: 0 9px 28px rgb(28 48 41 / 6%);
+  --shadow-float: 0 20px 60px rgb(28 48 41 / 13%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --surface: 16 24 23;
+    --surface-muted: 25 36 34;
+    --surface-raised: 31 44 41;
+    --border: 65 82 77;
+    --text: 237 244 240;
+    --text-muted: 190 207 198;
+    --brand: 255 149 157;
+    --brand-strong: 255 174 180;
+    --brand-soft: 74 40 43;
+    --on-brand: 47 17 21;
+    --success: 151 225 177;
+    --success-soft: 31 65 46;
+    --warning: 248 213 147;
+    --warning-soft: 67 51 30;
+    --danger: 255 173 176;
+    --danger-soft: 70 39 39;
+    --info: 161 209 244;
+    --info-soft: 33 55 70;
+    --shadow-card: 0 9px 28px rgb(0 0 0 / 17%);
+    --shadow-float: 0 20px 60px rgb(0 0 0 / 35%);
+  }
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: 16 24 23;
+  --surface-muted: 25 36 34;
+  --surface-raised: 31 44 41;
+  --border: 65 82 77;
+  --text: 237 244 240;
+  --text-muted: 190 207 198;
+  --brand: 255 149 157;
+  --brand-strong: 255 174 180;
+  --brand-soft: 74 40 43;
+  --on-brand: 47 17 21;
+  --success: 151 225 177;
+  --success-soft: 31 65 46;
+  --warning: 248 213 147;
+  --warning-soft: 67 51 30;
+  --danger: 255 173 176;
+  --danger-soft: 70 39 39;
+  --info: 161 209 244;
+  --info-soft: 33 55 70;
+  --shadow-card: 0 9px 28px rgb(0 0 0 / 17%);
+  --shadow-float: 0 20px 60px rgb(0 0 0 / 35%);
 }
 * {
   box-sizing: border-box;
@@ -19,13 +83,17 @@ html {
 }
 body {
   margin: 0;
-  background: #fbfbfc;
-  color: #242b36;
-  font-family: "Vazirmatn", sans-serif;
+  background: rgb(var(--surface));
+  color: rgb(var(--text));
+  font-family: var(--font-vazir-arabic), var(--font-vazir-latin), sans-serif;
+  font-size: 16px;
+  line-height: 1.85;
+  font-variant-numeric: tabular-nums;
 }
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 button,
@@ -33,18 +101,13 @@ a,
 summary {
   -webkit-tap-highlight-color: transparent;
 }
-button:focus-visible,
-a:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-input:focus-visible,
-[tabindex="0"]:focus-visible {
-  outline: 3px solid #e0525e;
+:where(button, a, textarea, summary, input, select, [tabindex="0"]):focus-visible {
+  outline: 3px solid rgb(var(--brand));
   outline-offset: 3px;
 }
 ::selection {
-  background: #f6cdd1;
-  color: #77212a;
+  background: rgb(var(--brand-soft));
+  color: rgb(var(--brand-strong));
 }
 summary::-webkit-details-marker {
   display: none;
@@ -52,17 +115,31 @@ summary::-webkit-details-marker {
 summary {
   list-style: none;
 }
+code,
+[dir="ltr"] {
+  unicode-bidi: isolate;
+}
 .dialog-backdrop::backdrop {
-  background: rgba(23, 32, 44, 0.53);
+  background: rgb(8 18 16 / 62%);
 }
 .scrollbar-thin {
-  scrollbar-color: #cfd5dc transparent;
+  scrollbar-color: rgb(var(--border)) transparent;
   scrollbar-width: thin;
 }
 .scrollbar-thin::-webkit-scrollbar {
-  height: 6px;
+  height: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cfd5dc;
+  background: rgb(var(--border));
   border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

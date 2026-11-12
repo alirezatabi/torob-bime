@@ -3,11 +3,11 @@ import type { InsuranceSchema } from "@/lib/schemas/contracts";
 
 const icons = { car: CarFront, heart: HeartPulse, plane: Plane, home: House, shield: Shield };
 const colors = {
-  car: "bg-[#edf4fb] text-[#526f8c]",
-  heart: "bg-[#fdf0ef] text-[#a34d55]",
-  plane: "bg-[#edf7f5] text-[#397354]",
-  home: "bg-[#f7f1e9] text-[#8a5b38]",
-  shield: "bg-[#f2f4f7] text-[#63707d]",
+  car: "bg-info-soft text-info",
+  heart: "bg-brand-soft text-brand-strong",
+  plane: "bg-success-soft text-success",
+  home: "bg-warning-soft text-warning",
+  shield: "bg-surface-muted text-text-muted",
 };
 export function TypeIcon({
   type,

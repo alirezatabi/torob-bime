@@ -1,12 +1,19 @@
 "use client";
-
-import { useEffect, useRef } from "react";
 import { BookOpenText, ExternalLink, X } from "lucide-react";
+import { faNumber } from "@/lib/domain/format";
+import type { ExtractionProvenance } from "@/lib/schemas/contracts";
+import { provenanceText } from "./provenance";
+import { Drawer } from "./ui/drawer";
+import { IconButton } from "./ui/button";
 
 export type SourceDialogData = {
   title: string;
   productName: string;
   evidence: string;
+  context?: string;
+  value: string;
+  confidence: number;
+  provenance?: ExtractionProvenance;
   sourceUrl: string | null;
   isSampleData: boolean;
 };
@@ -17,66 +24,73 @@ export function SourceDialog({
   source: SourceDialogData;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
+  const context = source.context ?? source.evidence;
+  const index = context.indexOf(source.evidence);
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) ref.current?.close();
-      }}
-      className="dialog-backdrop m-auto w-[calc(100%-2rem)] max-w-lg rounded-[20px] border-0 bg-white p-0 text-ink shadow-float"
-    >
-      <div className="p-6 sm:p-7">
+    <Drawer onClose={onClose} titleId="source-title">
+      <div className="p-5 sm:p-7">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fdf0f1] text-brand">
-              <BookOpenText size={20} aria-hidden="true" />
+          <div className="flex items-start gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand-strong">
+              <BookOpenText size={22} aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-base font-extrabold">منبع این پوشش</h2>
-              <p className="mt-1 text-[12px] text-[#63707d]">
+              <h2 id="source-title" className="text-lg font-extrabold">
+                منبع این پوشش
+              </h2>
+              <p className="text-xs text-text-muted">
                 {source.title} · {source.productName}
               </p>
             </div>
           </div>
-          <button
-            autoFocus
-            onClick={() => ref.current?.close()}
-            className="rounded-lg p-2 text-[#63707d] hover:bg-[#f6f7f8]"
-            aria-label="بستن پنجره منبع"
-          >
-            <X size={19} aria-hidden="true" />
-          </button>
+          <IconButton label="بستن پنجره منبع" onClick={onClose}>
+            <X size={20} aria-hidden="true" />
+          </IconButton>
         </div>
         {source.isSampleData && (
-          <p className="mt-6 rounded-xl bg-[#fff7ef] px-4 py-3 text-xs leading-6 text-[#8a5b38]">
-            این متن و طرح ساختگی و صرفاً برای نمایش هستند.
+          <p className="mt-6 rounded-xl bg-warning-soft px-4 py-3 text-xs leading-6 text-warning">
+            این متن و طرح ساختگی و صرفاً برای نمایش هستند؛ قیمت واقعی نیست.
           </p>
         )}
-        <p className="mb-2 mt-5 text-[12px] font-bold text-[#63707d]">
+        <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl bg-surface-muted p-4 text-xs">
+          <div>
+            <span className="block text-text-muted">مقدار استخراج‌شده</span>
+            <strong>{source.value}</strong>
+          </div>
+          <div>
+            <span className="block text-text-muted">اطمینان اعلام‌شده</span>
+            <strong>{faNumber(Math.round(source.confidence * 100))}٪</strong>
+          </div>
+        </div>
+        <p className="mb-2 mt-6 text-xs font-bold text-text-muted">
           نقل‌قول دقیق از متن {source.isSampleData ? "نمونه" : "بیمه‌نامه"}
         </p>
-        <blockquote className="rounded-xl border border-[#e8ebee] bg-[#fafbfc] px-4 py-4 text-sm leading-8 text-[#515b67]">
-          «{source.evidence}»
+        <blockquote className="rounded-2xl border border-border bg-surface-muted p-4 text-sm leading-8 text-text">
+          {index >= 0 ? (
+            <>
+              {context.slice(0, index)}
+              <mark className="rounded bg-warning-soft px-0.5 text-text">{source.evidence}</mark>
+              {context.slice(index + source.evidence.length)}
+            </>
+          ) : (
+            source.evidence
+          )}
         </blockquote>
-        <p className="mt-4 text-[12px] leading-6 text-[#63707d]">
-          نقل‌قول کمک می‌کند پوشش را بررسی کنید؛ همیشه کل شرایط و استثناها را نیز بخوانید.
+        <p className="mt-4 text-xs leading-6 text-text-muted">
+          {provenanceText(source.provenance)}. وجود نقل‌قول به‌تنهایی درستی معنایی را تضمین نمی‌کند؛
+          متن کامل را هم بررسی کنید.
         </p>
         {source.sourceUrl && (
           <a
             href={source.sourceUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-brand hover:text-brand-dark"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 text-xs font-bold text-brand-strong"
           >
-            مشاهده منبع اصلی <ExternalLink size={14} aria-hidden="true" />
+            مشاهده منبع اصلی <ExternalLink size={16} aria-hidden="true" />
           </a>
         )}
       </div>
-    </dialog>
+    </Drawer>
   );
 }

@@ -8,7 +8,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="mt-5 inline-block rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white"
+        className="mt-5 inline-block rounded-xl bg-brand px-5 py-3 text-sm font-bold text-on-brand"
       >
         بازگشت به خانه
       </Link>

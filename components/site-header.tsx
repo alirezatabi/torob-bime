@@ -1,32 +1,35 @@
 import Link from "next/link";
-import { FlaskConical } from "lucide-react";
 import { Logo } from "./logo";
-
+import { MobileNav } from "./mobile-nav";
+import { ThemeToggle } from "./theme-toggle";
 export function SiteHeader() {
   return (
-    <header className="border-b border-[#eceef1] bg-white">
+    <header className="relative z-30 border-b border-border bg-surface-raised">
       <div className="mx-auto flex h-[76px] max-w-[1200px] items-center gap-10 px-5 sm:px-8">
         <Logo />
         <nav
           aria-label="ناوبری اصلی"
-          className="hidden items-center gap-8 text-[13px] font-medium text-[#63707d] md:flex"
+          className="hidden items-center gap-7 text-xs font-bold text-text-muted md:flex"
         >
-          <Link className="transition hover:text-brand" href="/#insurance-types">
+          <Link className="py-3 transition hover:text-brand-strong" href="/#insurance-types">
             انواع بیمه
           </Link>
-          <Link className="transition hover:text-brand" href="/#how-it-works">
-            چطور کار می‌کند؟
+          <Link className="py-3 transition hover:text-brand-strong" href="/#how-it-works">
+            روش کار
           </Link>
-          <Link className="transition hover:text-brand" href="/roadmap">
+          <Link className="py-3 transition hover:text-brand-strong" href="/roadmap">
             نقشه راه
           </Link>
-          <Link className="transition hover:text-brand" href="/evaluation">
+          <Link className="py-3 transition hover:text-brand-strong" href="/evaluation">
             ارزیابی
           </Link>
         </nav>
-        <div className="ms-auto flex items-center gap-2 rounded-full border border-[#f2d6d8] bg-[#fff8f8] px-3 py-2 text-[12px] font-semibold text-[#a34d55] sm:text-xs">
-          <FlaskConical size={14} aria-hidden="true" />
-          <span>نسخه آزمایشی</span>
+        <div className="ms-auto flex items-center gap-1">
+          <span className="hidden rounded-full bg-brand-soft px-3 py-2 text-xs font-bold text-brand-strong sm:inline-flex">
+            نسخه نمایشی
+          </span>
+          <ThemeToggle />
+          <MobileNav />
         </div>
       </div>
     </header>

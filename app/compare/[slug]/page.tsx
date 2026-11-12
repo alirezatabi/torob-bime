@@ -1,29 +1,30 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { z } from "zod";
 import { Suspense } from "react";
 import { ComparisonExperience } from "@/components/comparison-experience";
 import { getCatalogue } from "@/lib/data/catalog";
-import { aiConfigured } from "@/lib/ai/extraction";
+import { aiConfigured } from "@/lib/ai/anthropic";
 import { activeSchemas } from "@/lib/schemas/registry";
-import type { CoverageConstraint } from "@/lib/schemas/contracts";
+import { readComparisonState } from "@/lib/domain/comparison-query";
+import { Skeleton } from "@/components/ui/surfaces";
 
-export const dynamic = "force-dynamic";
-export const dynamicParams = false;
-export function generateStaticParams() {
-  return activeSchemas.map((schema) => ({ slug: schema.slug }));
-}
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{
-    priorities?: string;
-    required?: string;
-    budget?: string;
-    intent?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const schema = activeSchemas.find((item) => item.slug === slug);
+  return schema
+    ? {
+        title: `مقایسه ${schema.nameFa}`,
+        description: `مقایسه پوشش‌ها، استثناها و متن پشتیبان طرح‌های ساختگی ${schema.nameFa}.`,
+      }
+    : { title: "صفحه پیدا نشد" };
+}
 export default async function ComparePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  // Validate before creating a streaming boundary so invalid URLs return HTTP 404.
+  // Validate before the streaming boundary so unknown categories return HTTP 404.
   if (!activeSchemas.some((schema) => schema.slug === slug)) notFound();
   return (
     <Suspense fallback={<CompareLoading />}>
@@ -31,17 +32,15 @@ export default async function ComparePage({ params, searchParams }: PageProps) {
     </Suspense>
   );
 }
-
 function CompareLoading() {
   return (
     <main className="mx-auto max-w-[1200px] px-5 py-20" aria-live="polite">
-      <div className="h-6 w-48 animate-pulse rounded-lg bg-[#eceff1]" />
-      <div className="mt-6 h-24 animate-pulse rounded-2xl bg-white" />
-      <p className="mt-6 text-xs text-[#63707d]">در حال آماده‌سازی مقایسه...</p>
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="mt-6 h-32 w-full" />
+      <p className="mt-6 text-xs text-text-muted">در حال آماده‌سازی مقایسه...</p>
     </main>
   );
 }
-
 async function ComparisonContent({
   slug,
   searchParams,
@@ -51,56 +50,19 @@ async function ComparisonContent({
 }) {
   const catalogue = await getCatalogue(slug);
   if (!catalogue) notFound();
-  const query = await searchParams;
-  const priorities =
-    typeof query.priorities === "string"
-      ? query.priorities
-          .split(",")
-          .filter((key) =>
-            catalogue.schema.fields.some(
-              (field) => field.key === key && !field.isExclusion && field.kind !== "text",
-            ),
-          )
-          .slice(0, 12)
-      : [];
-  const requiredKeys =
-    typeof query.required === "string"
-      ? [...new Set(query.required.split(","))]
-          .filter((key) =>
-            catalogue.schema.fields.some(
-              (field) =>
-                field.key === key &&
-                field.kind === "boolean" &&
-                field.higherIsBetter &&
-                !field.isExclusion,
-            ),
-          )
-          .slice(0, 12)
-      : [];
-  const constraints: CoverageConstraint[] = requiredKeys.map((fieldKey) => ({
-    fieldKey,
-    kind: "covered",
-  }));
-  const budgetParsed = z.coerce
-    .number()
-    .nonnegative()
-    .max(1_000_000_000_000)
-    .safeParse(query.budget);
-  const budget = query.budget !== undefined && budgetParsed.success ? budgetParsed.data : null;
-  const hasAi = aiConfigured();
-  // Never claim model interpretation in an environment where no model is configured.
-  const intentMode =
-    query.intent === "rules" ? "rules" : query.intent === "ai" && hasAi ? "ai" : null;
+  const raw = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(raw))
+    if (typeof value === "string") query.set(key, value);
+  const initial = readComparisonState(query, catalogue.schema, catalogue.products);
   return (
     <ComparisonExperience
       schema={catalogue.schema}
       products={catalogue.products}
       mode={catalogue.mode}
-      initialPriorities={priorities}
-      initialConstraints={constraints}
-      budget={budget}
-      intentMode={intentMode}
-      hasAi={hasAi}
+      fallbackReason={catalogue.fallbackReason}
+      initial={initial}
+      hasAi={aiConfigured()}
     />
   );
 }
