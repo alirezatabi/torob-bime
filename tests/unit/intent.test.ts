@@ -44,6 +44,10 @@ describe("Persian intent and input handling", () => {
     expect(classifyIntentOffline("برای سفر بودجه ۵ میلیون").budgetToman).toBeNull();
     expect(classifyIntentOffline("برای سفر بودجه بین ۳ تا ۵ میلیون تومان").budgetToman).toBeNull();
     expect(classifyIntentOffline("برای سفر بودجه ۱۰ میلیون ریال").budgetToman).toBe(1_000_000);
+    expect(classifyIntentOffline("برای سفر بودجه ۵ میلیون تومان در ماه").budgetToman).toBe(
+      60_000_000,
+    );
+    expect(classifyIntentOffline("برای سفر بودجه ۰ تومان").budgetToman).toBeNull();
     expect(parsePersianNumber("۱٫۵ میلیارد تومان")).toBe(1_500_000_000);
     expect(normalizePersian("بيمهٔ خودرو")).toContain("بیمه");
     expect(sanitizeInput("  متن\u0000  آزمایشی \n ")).toBe("متن آزمایشی");

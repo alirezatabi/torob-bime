@@ -1,4 +1,5 @@
 import { insuranceSchemaSchema } from "./contracts";
+import { samplePremiumField } from "./sample-premium";
 
 export const carBodySchema = insuranceSchemaSchema.parse({
   slug: "car-body",
@@ -19,6 +20,7 @@ export const carBodySchema = insuranceSchemaSchema.parse({
   fields: [
     {
       key: "collision",
+      group: "پوشش‌ها",
       labelFa: "تصادف و برخورد",
       kind: "boolean",
       weight: 2,
@@ -26,6 +28,7 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "total_theft",
+      group: "پوشش‌ها",
       labelFa: "سرقت کلی خودرو",
       kind: "boolean",
       weight: 2,
@@ -33,6 +36,7 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "partial_theft",
+      group: "پوشش‌ها",
       labelFa: "سرقت لوازم خودرو",
       kind: "boolean",
       weight: 1.4,
@@ -40,6 +44,7 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "natural_events",
+      group: "پوشش‌ها",
       labelFa: "حوادث طبیعی",
       kind: "boolean",
       weight: 1.3,
@@ -47,6 +52,7 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "minor_damage",
+      group: "پوشش‌ها",
       labelFa: "خسارت جزئی و خط‌وخش",
       kind: "boolean",
       weight: 1.5,
@@ -54,6 +60,8 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "deductible",
+      group: "سقف‌ها و شرایط",
+      glossaryFa: "بخشی از هزینه یا خسارت که بر اساس شرایط قرارداد بر عهده بیمه‌شده است.",
       labelFa: "فرانشیز هر خسارت",
       kind: "number",
       unit: "percent",
@@ -63,6 +71,9 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "vehicle_limit",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف ارزش خودرو",
       kind: "number",
       unit: "toman",
@@ -72,11 +83,13 @@ export const carBodySchema = insuranceSchemaSchema.parse({
     },
     {
       key: "exclusions",
+      group: "استثناها و محدودیت‌ها",
       labelFa: "استثنای مهم",
       kind: "text",
       isExclusion: true,
       weight: 1,
       keywords: ["استثنا", "پوشش نمی"],
     },
+    samplePremiumField,
   ],
 });

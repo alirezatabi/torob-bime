@@ -17,8 +17,14 @@ function extractBudget(text: string): number | null {
   const after = clause.slice((match.index ?? 0) + match[0].length);
   if (/\d/.test(before) || /^\s*(?:تا|الی|و)\s*\d/.test(after)) return null;
   const parsed = parsePersianNumber(match[1]);
-  const value = parsed !== null && match[2] === "ریال" ? parsed / 10 : parsed;
-  return value !== null && value >= 0 && value <= 1_000_000_000_000 ? value : null;
+  let value = parsed !== null && match[2] === "ریال" ? parsed / 10 : parsed;
+  const monthly = /(?:ماهانه|در ماه|هر ماه|ماهیانه)/.test(after);
+  const annually = /(?:سالانه|در سال|هر سال)/.test(after);
+  if (monthly && annually) return null;
+  if (value !== null && monthly) value *= 12;
+  return value !== null && value > 0 && Number.isSafeInteger(value) && value <= 1_000_000_000_000
+    ? value
+    : null;
 }
 
 export function prioritiesForText(text: string, schema: InsuranceSchema): string[] {

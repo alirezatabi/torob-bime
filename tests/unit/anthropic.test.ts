@@ -40,10 +40,9 @@ describe("Anthropic tool contracts (mocked; not a live model eval)", () => {
     expect(result.attempts).toBe(2);
     expect(result.history[0].issues.length).toBeGreaterThan(0);
     expect(mockCreate.mock.calls[0][0].model).toBe("test-model-from-env");
-    expect(mockCreate.mock.calls[0][0].tool_choice).toEqual({
-      type: "tool",
-      name: "record_coverages",
-    });
+    expect(mockCreate.mock.calls[0][0].tool_choice).toEqual({ type: "auto" });
+    expect(mockCreate.mock.calls[0][0].tools[0].strict).toBe(true);
+    expect(mockCreate.mock.calls[0][0].system[0].cache_control).toEqual({ type: "ephemeral" });
   });
   it("validates model-selected field keys and retries invalid intent", async () => {
     mockCreate

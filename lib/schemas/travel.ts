@@ -1,4 +1,5 @@
 import { insuranceSchemaSchema } from "./contracts";
+import { samplePremiumField } from "./sample-premium";
 
 export const travelSchema = insuranceSchemaSchema.parse({
   slug: "travel",
@@ -20,6 +21,9 @@ export const travelSchema = insuranceSchemaSchema.parse({
   fields: [
     {
       key: "medical_limit",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف هزینه درمان اضطراری",
       kind: "number",
       unit: "euro",
@@ -29,6 +33,9 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "emergency_dental",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف دندان‌پزشکی اضطراری",
       kind: "number",
       unit: "euro",
@@ -38,6 +45,7 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "baggage_delay",
+      group: "پوشش‌ها",
       labelFa: "تأخیر در تحویل بار",
       kind: "boolean",
       weight: 1.3,
@@ -45,6 +53,7 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "trip_cancellation",
+      group: "پوشش‌ها",
       labelFa: "لغو سفر",
       kind: "boolean",
       weight: 1.2,
@@ -52,6 +61,7 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "adventure_sports",
+      group: "پوشش‌ها",
       labelFa: "ورزش‌های پرخطر",
       kind: "boolean",
       weight: 1,
@@ -59,6 +69,8 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "deductible",
+      group: "سقف‌ها و شرایط",
+      glossaryFa: "بخشی از هزینه یا خسارت که بر اساس شرایط قرارداد بر عهده بیمه‌شده است.",
       labelFa: "فرانشیز درمان اضطراری",
       kind: "number",
       unit: "euro",
@@ -68,11 +80,13 @@ export const travelSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "exclusions",
+      group: "استثناها و محدودیت‌ها",
       labelFa: "استثنای مهم",
       kind: "text",
       isExclusion: true,
       weight: 1,
       keywords: ["استثنا", "پوشش نمی"],
     },
+    samplePremiumField,
   ],
 });

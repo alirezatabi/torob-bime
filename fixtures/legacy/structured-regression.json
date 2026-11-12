@@ -1,0 +1,49 @@
+{
+  "products": [
+    {
+      "slug": "car-body-aftab",
+      "typeSlug": "car-body",
+      "insurerSlug": "aftab",
+      "insurerNameFa": "بیمه آفتاب (فرضی)",
+      "nameFa": "طرح آسوده",
+      "sourceText": "طرح آسوده، بیمه آفتاب (فرضی). این متن صرفاً یک نمونه ساختگی برای نمایش مقایسه است.\nتصادف و برخورد: پوشش دارد.\nسرقت کلی خودرو: پوشش دارد.\nسرقت لوازم خودرو: پوشش ندارد.\nحوادث طبیعی: پوشش دارد.\nخسارت جزئی و خط‌وخش: پوشش ندارد.\nفرانشیز هر خسارت: ۱۰ درصد.\nسقف ارزش خودرو: ۱٬۵۰۰٬۰۰۰٬۰۰۰ تومان.\nاستثنای مهم: خسارت ناشی از رانندگی عمدی پوشش ندارد.",
+      "sourceUrl": null,
+      "isSampleData": true
+    }
+  ],
+  "cases": [
+    {
+      "id": "C01",
+      "typeSlug": "car-body",
+      "sourceText": "تصادف و برخورد: پوشش دارد.\nسرقت کلی خودرو: پوشش ندارد.\nفرانشیز هر خسارت: ۱۵ درصد.",
+      "expected": {
+        "collision": true,
+        "total_theft": false,
+        "deductible": 15,
+        "minor_damage": null
+      }
+    },
+    {
+      "id": "C02",
+      "typeSlug": "car-body",
+      "sourceText": "تصادف و برخورد: پوشش دارد.\nحوادث طبیعی: پوشش ندارد.\nسقف ارزش خودرو: ۱٬۵۰۰٬۰۰۰٬۰۰۰ تومان.",
+      "expected": {
+        "collision": true,
+        "natural_events": false,
+        "vehicle_limit": 1500000000,
+        "partial_theft": null
+      }
+    },
+    {
+      "id": "C03",
+      "typeSlug": "car-body",
+      "sourceText": "سرقت لوازم خودرو: پوشش دارد.\nخسارت جزئی و خط‌وخش: پوشش ندارد.\nفرانشیز هر خسارت: ۱۰ درصد.",
+      "expected": {
+        "partial_theft": true,
+        "minor_damage": false,
+        "deductible": 10,
+        "collision": null
+      }
+    }
+  ]
+}

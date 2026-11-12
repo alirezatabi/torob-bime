@@ -18,8 +18,12 @@ export const coverageFieldSchema = z
     higherIsBetter: z.boolean().default(true),
     weight: z.number().positive().max(10).default(1),
     isExclusion: z.boolean().default(false),
+    isPremium: z.boolean().default(false),
     options: z.array(z.object({ value: z.string(), labelFa: z.string() })).optional(),
     keywords: z.array(z.string()).default([]),
+    anchors: z.array(z.string().min(2)).default([]),
+    group: z.string().min(1).optional(),
+    glossaryFa: z.string().min(1).optional(),
   })
   .superRefine((field, ctx) => {
     if (field.kind === "enum" && !field.options?.length) {
@@ -58,7 +62,7 @@ export type CoveragePrimitive = number | boolean | string | null;
 export const coverageValueSchema = z.object({
   fieldKey,
   value: z.union([z.number().finite(), z.boolean(), z.string(), z.null()]),
-  evidence: z.string().nullable(),
+  evidence: z.string().max(500).nullable(),
   confidence: z.number().min(0).max(1),
 });
 export type CoverageValue = z.infer<typeof coverageValueSchema>;
@@ -80,8 +84,16 @@ export const sampleProductInputSchema = z.object({
 });
 export type ProductInput = z.infer<typeof sampleProductInputSchema>;
 
+export type ExtractionProvenance =
+  | { kind: "rules" }
+  | { kind: "snapshot"; model: string; generatedAt: string }
+  | { kind: "live"; model: string };
+
 export type ComparableProduct = Omit<ProductInput, "sourceText"> & {
   coverages: CoverageValue[];
+  provenance?: ExtractionProvenance;
+  /** Only bounded source excerpts for grounded fields, never the entire policy. */
+  evidenceContext?: Record<string, string>;
 };
 
 // A deliberately narrow constraint: an explicitly required boolean coverage.

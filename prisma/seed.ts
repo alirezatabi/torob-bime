@@ -1,5 +1,7 @@
-import "dotenv/config";
+import "@/lib/server/env";
 import samples from "@/fixtures/products.json";
+import snapshots from "@/fixtures/extractions/index.json";
+import { replaySnapshot } from "@/lib/ai/snapshot";
 import { extractSample } from "@/lib/ai/extraction";
 import { sampleProductInputSchema } from "@/lib/schemas/contracts";
 import { getInsuranceSchema } from "@/lib/schemas/registry";
@@ -11,12 +13,24 @@ async function main() {
     const product = sampleProductInputSchema.parse(raw);
     const schema = getInsuranceSchema(product.typeSlug);
     if (!schema || !product.isSampleData) throw new Error(`Invalid sample: ${product.slug}`);
-    const result = await extractSample(schema, product.sourceText);
+    const index: Record<string, unknown> = snapshots;
+    const snapshot = replaySnapshot(index[product.slug], product, schema);
+    const result = snapshot
+      ? {
+          values: snapshot.values,
+          issues: [],
+          valid: true,
+          attempts: 1,
+          history: [],
+          rawOutput: { values: snapshot.values },
+          model: snapshot.model,
+        }
+      : await extractSample(schema, product.sourceText);
     if (!result.valid) throw new Error(`Invalid extraction: ${product.slug}`);
-    await storeExtraction(product, schema, result);
+    await storeExtraction(product, schema, result, snapshot?.generatedAt);
   }
   console.log(
-    `Seeded ${samples.length} explicitly fictional sample products using the offline parser.`,
+    `Seeded ${samples.length} fictional products from valid snapshots where available, otherwise offline rules.`,
   );
 }
 main()

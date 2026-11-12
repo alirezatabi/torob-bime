@@ -3,6 +3,7 @@ import type {
   CoverageConstraint,
   CoverageField,
   CoverageValue,
+  CoveragePrimitive,
   InsuranceSchema,
 } from "@/lib/schemas/contracts";
 
@@ -28,7 +29,9 @@ export function rankProducts(
   priorities: string[],
   constraints: CoverageConstraint[] = [],
 ): RankedProduct[] {
-  const fields = schema.fields.filter((field) => !field.isExclusion && field.kind !== "text");
+  const fields = schema.fields.filter(
+    (field) => !field.isExclusion && !field.isPremium && field.kind !== "text",
+  );
   const requiredKeys = [...new Set(constraints.map((constraint) => constraint.fieldKey))].filter(
     (key) =>
       fields.some((field) => field.key === key && field.kind === "boolean" && field.higherIsBetter),
@@ -50,28 +53,8 @@ export function rankProducts(
       let known = 0;
       for (const field of fields) {
         const value = getCoverage(product, field.key)?.value ?? null;
-        let normalized = 0;
-        if (value !== null) {
-          known++;
-          if (typeof value === "boolean") {
-            normalized = value ? 1 : 0;
-            if (field.higherIsBetter === false) normalized = 1 - normalized;
-          } else if (typeof value === "number") {
-            const range = ranges.get(field.key);
-            if (range) {
-              normalized =
-                range.min === range.max ? 1 : (value - range.min) / (range.max - range.min);
-              if (field.higherIsBetter === false && range.min !== range.max)
-                normalized = 1 - normalized;
-            }
-          } else if (field.kind === "enum" && field.options?.length) {
-            const index = field.options.findIndex((option) => option.value === value);
-            if (index >= 0) {
-              normalized = field.options.length === 1 ? 1 : index / (field.options.length - 1);
-              if (field.higherIsBetter === false) normalized = 1 - normalized;
-            }
-          }
-        }
+        if (value !== null) known++;
+        const normalized = normalizedFieldScore(field, value, ranges.get(field.key)) ?? 0;
         weighted += normalized * field.weight * (priorities.includes(field.key) ? 3 : 1);
       }
       return {
@@ -103,7 +86,7 @@ export function limitationFacts(
   return schema.fields
     .flatMap((field) => {
       const coverage = getCoverage(product, field.key);
-      if (!coverage || coverage.value === null || !coverage.evidence) return [];
+      if (!coverage || coverage.value === null || !coverage.evidence || field.isPremium) return [];
       const unfavorableBoolean =
         typeof coverage.value === "boolean" &&
         (field.higherIsBetter === false ? coverage.value : !coverage.value);
@@ -133,33 +116,42 @@ export function isNonCoverage(fact: FieldFact): boolean {
   );
 }
 
+export type NumericRange = { min: number; max: number };
+/** One normalization function for ranking and row highlighting; null is never best. */
+export function normalizedFieldScore(
+  field: CoverageField,
+  value: CoveragePrimitive,
+  range?: NumericRange,
+): number | null {
+  if (value === null) return null;
+  if (field.kind === "boolean" && typeof value === "boolean")
+    return field.higherIsBetter === false ? Number(!value) : Number(value);
+  if (field.kind === "number" && typeof value === "number" && range) {
+    if (range.min === range.max) return 1;
+    const score = (value - range.min) / (range.max - range.min);
+    return field.higherIsBetter === false ? 1 - score : score;
+  }
+  if (field.kind === "enum" && typeof value === "string" && field.options?.length) {
+    const index = field.options.findIndex((option) => option.value === value);
+    if (index < 0) return null;
+    if (field.options.length === 1) return 1;
+    const score = index / (field.options.length - 1);
+    return field.higherIsBetter === false ? 1 - score : score;
+  }
+  return null;
+}
+
 export function relativeFieldScore(
   product: ComparableProduct,
   field: CoverageField,
   products: ComparableProduct[],
 ): number | null {
   const value = getCoverage(product, field.key)?.value ?? null;
-  if (value === null) return null;
-  if (typeof value === "boolean")
-    return field.higherIsBetter === false ? Number(!value) : Number(value);
-  if (typeof value === "number") {
-    const all = products
-      .map((item) => getCoverage(item, field.key)?.value)
-      .filter((item): item is number => typeof item === "number");
-    if (!all.length) return null;
-    const min = Math.min(...all),
-      max = Math.max(...all);
-    if (min === max) return 1;
-    const score = (value - min) / (max - min);
-    return field.higherIsBetter === false ? 1 - score : score;
-  }
-  if (field.kind === "enum" && field.options?.length) {
-    const index = field.options.findIndex((option) => option.value === value);
-    if (index < 0) return null;
-    const score = field.options.length === 1 ? 1 : index / (field.options.length - 1);
-    return field.higherIsBetter === false ? 1 - score : score;
-  }
-  return null;
+  const nums = products
+    .map((item) => getCoverage(item, field.key)?.value)
+    .filter((item): item is number => typeof item === "number");
+  const range = nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : undefined;
+  return normalizedFieldScore(field, value, range);
 }
 
 export function explanationFacts(
@@ -176,6 +168,7 @@ export function explanationFacts(
         coverage.value === null ||
         !coverage.evidence ||
         field.isExclusion ||
+        field.isPremium ||
         field.kind === "text"
       )
         return [];

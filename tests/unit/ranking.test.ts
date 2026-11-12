@@ -110,3 +110,28 @@ describe("transparent relative ranking", () => {
     expect(ranked[1].score).toBe(0);
   });
 });
+
+describe("shared field normalization", () => {
+  it("handles unknowns, equal numbers, inverse numbers, booleans and enums", async () => {
+    const { normalizedFieldScore } = await import("@/lib/domain/ranking");
+    const number = carBodySchema.fields.find((field) => field.key === "deductible")!;
+    expect(normalizedFieldScore(number, null, { min: 0, max: 10 })).toBeNull();
+    expect(normalizedFieldScore(number, 10, { min: 10, max: 10 })).toBe(1);
+    expect(normalizedFieldScore(number, 0, { min: 0, max: 10 })).toBe(1);
+    expect(normalizedFieldScore(number, 10, { min: 0, max: 10 })).toBe(0);
+    const boolean = carBodySchema.fields.find((field) => field.key === "collision")!;
+    expect(normalizedFieldScore(boolean, true)).toBe(1);
+    expect(normalizedFieldScore(boolean, false)).toBe(0);
+    const enumeration = {
+      ...boolean,
+      kind: "enum" as const,
+      options: [
+        { value: "a", labelFa: "الف" },
+        { value: "b", labelFa: "ب" },
+      ],
+    };
+    expect(normalizedFieldScore(enumeration, "a")).toBe(0);
+    expect(normalizedFieldScore(enumeration, "b")).toBe(1);
+    expect(normalizedFieldScore(enumeration, "nope")).toBeNull();
+  });
+});

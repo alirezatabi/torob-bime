@@ -35,9 +35,7 @@ describe("schema-driven grounded extraction", () => {
     const raw = validOutput();
     raw.values.find((v) => v.fieldKey === "collision")!.evidence = "یک نقل‌قول ساختگی";
     const theft = raw.values.find((v) => v.fieldKey === "total_theft")!;
-    theft.evidence = sample.sourceText
-      .split("\n")
-      .find((line) => line.startsWith("تصادف و برخورد"))!;
+    theft.evidence = validOutput().values.find((v) => v.fieldKey === "collision")!.evidence;
     raw.values.find((v) => v.fieldKey === "deductible")!.value = 99;
     const result = groundExtraction(raw, carBodySchema, sample.sourceText);
     expect(result.issues.length).toBe(3);

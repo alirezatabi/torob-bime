@@ -1,8 +1,14 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { logFailure } from "@/lib/server/log";
+import {
+  aiConfigured,
+  anthropicClient,
+  callAnthropicTool,
+  modelFor,
+  strictTools,
+} from "./anthropic";
 import { z } from "zod";
 import { explanationFacts, isNonCoverage, limitationFacts } from "@/lib/domain/ranking";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
-import { aiConfigured } from "./extraction";
 
 export type ExplanationKeys = {
   productSlug: string;
@@ -41,11 +47,7 @@ export async function selectExplanationKeys(
 ): Promise<{ mode: "ai" | "rules"; items: ExplanationKeys[] }> {
   const defaultItems = fallback(products, schema, priorities);
   if (!aiConfigured()) return { mode: "rules", items: defaultItems };
-  const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-    maxRetries: 0,
-    timeout: 30_000,
-  });
+  const client = anthropicClient();
   // Pass normalized values, labels, and eligibility only — never source text or personal input.
   const data = products.map((product) => ({
     productSlug: product.slug,
@@ -65,45 +67,51 @@ export async function selectExplanationKeys(
   }));
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await client.messages.create({
-        model: process.env.LLM_MODEL!,
-        max_tokens: 700,
-        system:
-          "Choose one relevant favorable field and one important non-covered exclusion per product from only the supplied normalized facts. Prefer a false coverage, a zero coverage limit, or an explicit exclusion; use another limitation only if none exist. Prioritize the user's selected keys. Do not write prose or add facts. Use null when no eligible fact exists.",
-        messages: [{ role: "user", content: JSON.stringify({ priorities, products: data }) }],
-        tools: [
-          {
-            name: "select_facts",
-            description: "Select existing field keys for sourced explanations.",
-            input_schema: {
-              type: "object",
-              properties: {
-                items: {
-                  type: "array",
+      const input = await callAnthropicTool(
+        client,
+        {
+          model: modelFor("fast"),
+          max_tokens: 700,
+          system: [
+            {
+              type: "text",
+              cache_control: { type: "ephemeral" },
+              text: "Choose one relevant favorable field and one important non-covered exclusion per product from only the supplied normalized facts. Prefer a false coverage, a zero coverage limit, or an explicit exclusion; use another limitation only if none exist. Prioritize the user's selected keys. Do not write prose or add facts. Use null when no eligible fact exists. Call select_facts.",
+            },
+          ],
+          messages: [{ role: "user", content: JSON.stringify({ priorities, products: data }) }],
+          tools: [
+            {
+              name: "select_facts",
+              strict: strictTools(),
+              description: "Select existing field keys for sourced explanations.",
+              input_schema: {
+                type: "object",
+                properties: {
                   items: {
-                    type: "object",
-                    properties: {
-                      productSlug: { type: "string" },
-                      positiveFieldKey: { anyOf: [{ type: "string" }, { type: "null" }] },
-                      limitationFieldKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        productSlug: { type: "string" },
+                        positiveFieldKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                        limitationFieldKey: { anyOf: [{ type: "string" }, { type: "null" }] },
+                      },
+                      required: ["productSlug", "positiveFieldKey", "limitationFieldKey"],
+                      additionalProperties: false,
                     },
-                    required: ["productSlug", "positiveFieldKey", "limitationFieldKey"],
-                    additionalProperties: false,
                   },
                 },
+                required: ["items"],
+                additionalProperties: false,
               },
-              required: ["items"],
-              additionalProperties: false,
             },
-          },
-        ],
-        tool_choice: { type: "tool", name: "select_facts" },
-      });
-      const tool = response.content.find(
-        (block) => block.type === "tool_use" && block.name === "select_facts",
+          ],
+          tool_choice: { type: "auto" },
+        },
+        "select_facts",
       );
-      if (!tool || tool.type !== "tool_use") continue;
-      const parsed = outputSchema.parse(tool.input).items;
+      const parsed = outputSchema.parse(input).items;
       if (
         parsed.length !== products.length ||
         new Set(parsed.map((item) => item.productSlug)).size !== products.length
@@ -136,7 +144,8 @@ export async function selectExplanationKeys(
         return positiveOk && limitOk;
       });
       if (valid) return { mode: "ai", items: parsed };
-    } catch {
+    } catch (error) {
+      logFailure("explanation", error);
       /* Fall back to sourced templates if the model is unavailable or invalid. */
     }
   }

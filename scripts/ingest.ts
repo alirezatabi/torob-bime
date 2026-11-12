@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "@/lib/server/env";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { extractSample, extractWithAnthropic, aiConfigured } from "@/lib/ai/extraction";

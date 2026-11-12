@@ -1,4 +1,5 @@
 import { insuranceSchemaSchema } from "./contracts";
+import { samplePremiumField } from "./sample-premium";
 
 export const healthSchema = insuranceSchemaSchema.parse({
   slug: "supplementary-health",
@@ -20,6 +21,9 @@ export const healthSchema = insuranceSchemaSchema.parse({
   fields: [
     {
       key: "hospital_limit",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف بستری و جراحی",
       kind: "number",
       unit: "toman",
@@ -29,6 +33,9 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "dental_limit",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف دندان‌پزشکی",
       kind: "number",
       unit: "toman",
@@ -38,6 +45,9 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "outpatient_limit",
+      group: "سقف‌ها و شرایط",
+      glossaryFa:
+        "حداکثر تعهد ذکرشده در متن نمونه؛ شرایط و محدودیت‌های دیگر نیز ممکن است وجود داشته باشند.",
       labelFa: "سقف خدمات سرپایی",
       kind: "number",
       unit: "toman",
@@ -47,6 +57,8 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "waiting_period",
+      group: "سقف‌ها و شرایط",
+      glossaryFa: "مدتی پس از شروع قرارداد که ممکن است برخی خدمات در آن قابل دریافت نباشند.",
       labelFa: "دوره انتظار",
       kind: "number",
       unit: "month",
@@ -56,6 +68,8 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "deductible",
+      group: "سقف‌ها و شرایط",
+      glossaryFa: "بخشی از هزینه یا خسارت که بر اساس شرایط قرارداد بر عهده بیمه‌شده است.",
       labelFa: "فرانشیز درمان",
       kind: "number",
       unit: "percent",
@@ -65,6 +79,7 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "preexisting",
+      group: "پوشش‌ها",
       labelFa: "بیماری‌های از پیش موجود",
       kind: "boolean",
       weight: 1.2,
@@ -72,11 +87,13 @@ export const healthSchema = insuranceSchemaSchema.parse({
     },
     {
       key: "exclusions",
+      group: "استثناها و محدودیت‌ها",
       labelFa: "استثنای مهم",
       kind: "text",
       isExclusion: true,
       weight: 1,
       keywords: ["استثنا", "پوشش نمی"],
     },
+    samplePremiumField,
   ],
 });

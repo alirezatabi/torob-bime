@@ -8,9 +8,9 @@
     "npm": ">=10"
   },
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev",
     "build": "npm run db:generate && next build",
-    "start": "next start -H 0.0.0.0",
+    "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings=0",
     "format": "prettier --write .",
@@ -19,20 +19,24 @@
     "test:e2e": "playwright test",
     "eval": "tsx scripts/eval.ts",
     "ingest": "tsx scripts/ingest.ts",
-    "db:generate": "node scripts/generate-client.mjs",
+    "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "add-type": "tsx scripts/add-insurance-type.ts",
     "verify": "npm run typecheck && npm run lint && npm test && npm run eval",
-    "postinstall": "node scripts/generate-client.mjs"
+    "postinstall": "prisma generate",
+    "snapshot": "tsx scripts/snapshot.ts",
+    "dev:lan": "next dev -H 0.0.0.0",
+    "start:lan": "next start -H 0.0.0.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
-    "@fontsource/vazirmatn": "5.3.0",
+    "@fontsource-variable/vazirmatn": "^5.2.8",
+    "@next/env": "^15.5.29",
     "@prisma/adapter-pg": "6.19.3",
     "@prisma/client": "6.19.3",
     "lucide-react": "^0.468.0",
@@ -50,7 +54,6 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.21",
-    "dotenv": "^16.6.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "15.5.29",
     "postcss": "^8.5.6",

@@ -1,15 +1,12 @@
-import { readFile } from "node:fs/promises";
+import report from "@/fixtures/eval-report.json";
 import { NextResponse } from "next/server";
-export async function GET() {
-  try {
-    const report = await readFile("EVAL_REPORT.md", "utf8");
-    return new NextResponse(report, {
-      headers: { "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": "no-store" },
-    });
-  } catch {
-    return NextResponse.json(
-      { error: "گزارش در دسترس نیست؛ ابتدا ارزیابی را اجرا کنید." },
-      { status: 404 },
-    );
-  }
+
+/** The report is bundled at build time; no request-time dependency on cwd or fs. */
+export function GET() {
+  return new NextResponse(report, {
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
 }

@@ -1,9 +1,11 @@
-import "dotenv/config";
-import { writeFile } from "node:fs/promises";
+import "@/lib/server/env";
+import { mkdir, writeFile } from "node:fs/promises";
 import { z } from "zod";
 import extractionCases from "@/fixtures/extraction-eval.json";
 import intentCases from "@/fixtures/intent-eval.json";
+import snapshotIndex from "@/fixtures/extractions/eval-index.json";
 import { extractSample, extractWithAnthropic, aiConfigured } from "@/lib/ai/extraction";
+import { replaySnapshot } from "@/lib/ai/snapshot";
 import { understandIntent } from "@/lib/ai/intent";
 import { classifyIntentOffline } from "@/lib/domain/intent";
 import { extractionOutputSchema } from "@/lib/schemas/contracts";
@@ -22,17 +24,19 @@ const intentCaseSchema = z.object({
   expectedType: z.string().nullable(),
   expectedPriorities: z.array(z.string()),
 });
-const percent = (numerator: number, denominator: number) =>
-  denominator ? Math.round((numerator / denominator) * 1000) / 10 : 0;
+const percent = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : 0);
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const sameSet = (a: string[], b: string[]) => same([...a].sort(), [...b].sort());
 
 async function main() {
   const live = process.argv.includes("--live");
+  const snapshot = process.argv.includes("--snapshot");
+  if (live && snapshot) throw new Error("Choose --live OR --snapshot, not both.");
   if (live && !aiConfigured())
     throw new Error(
-      "Live eval requires ANTHROPIC_API_KEY and LLM_MODEL. No offline results will be labeled as live.",
+      "Live eval requires ANTHROPIC_API_KEY and LLM_MODEL. Offline results are never labeled live.",
     );
+  const mode = live ? "live-anthropic" : snapshot ? "snapshot-replay" : "offline-rules";
   const cases = z.array(extractionCaseSchema).min(30).parse(extractionCases);
   const utterances = z.array(intentCaseSchema).min(20).parse(intentCases);
   const fields: Record<string, { label: string; correct: number; total: number }> = {};
@@ -42,13 +46,38 @@ async function main() {
     rawGrounded = 0,
     rawNonNull = 0,
     invalidRuns = 0,
-    retriedRuns = 0;
+    retriedRuns = 0,
+    missingSnapshots = 0,
+    evaluatedCases = 0;
+  const index: Record<string, unknown> = snapshotIndex;
   for (const test of cases) {
     const schema = getInsuranceSchema(test.typeSlug);
     if (!schema || schema.status !== "active") throw new Error(`Unknown schema in ${test.id}`);
-    const result = live
-      ? await extractWithAnthropic(schema, test.sourceText)
-      : await extractSample(schema, test.sourceText);
+    let result;
+    if (snapshot) {
+      const source = {
+        slug: `eval-${test.id.toLowerCase()}`,
+        typeSlug: test.typeSlug,
+        sourceText: test.sourceText,
+      };
+      const replay = replaySnapshot(index[source.slug], source, schema);
+      if (!replay) {
+        missingSnapshots++;
+        failures.push(`${test.id}: snapshot missing, stale, or invalid (not replaced with rules)`);
+        continue;
+      }
+      result = {
+        values: replay.values,
+        rawOutput: { values: replay.values },
+        valid: true,
+        attempts: 1,
+        issues: [] as string[],
+      };
+    } else
+      result = live
+        ? await extractWithAnthropic(schema, test.sourceText)
+        : await extractSample(schema, test.sourceText);
+    evaluatedCases++;
     if (!result.valid) {
       invalidRuns++;
       failures.push(`${test.id}: invalid extraction (${result.issues.join("; ")})`);
@@ -56,12 +85,11 @@ async function main() {
     if (result.attempts > 1) retriedRuns++;
     const raw = extractionOutputSchema.safeParse(result.rawOutput);
     if (raw.success)
-      for (const row of raw.data.values) {
+      for (const row of raw.data.values)
         if (row.value !== null) {
           rawNonNull++;
           if (row.evidence && test.sourceText.includes(row.evidence)) rawGrounded++;
         }
-      }
     for (const [key, expected] of Object.entries(test.expected)) {
       const field = schema.fields.find((item) => item.key === key);
       if (!field) throw new Error(`Unknown field ${key} in ${test.id}`);
@@ -80,43 +108,46 @@ async function main() {
     }
     if (live) console.log(`Extraction ${test.id}: ${result.valid ? "valid" : "flagged"}`);
   }
+  // Snapshot replay measures extraction only; don't silently mix rule intent into a model score.
   let intentCorrect = 0,
     prioritiesCorrect = 0,
     modelFallbacks = 0;
-  for (const test of utterances) {
-    const result = live ? await understandIntent(test.text) : classifyIntentOffline(test.text);
-    const actualType = result.typeSlug;
-    // A fallback is NOT counted as live-model success even if the rule happens to be right.
-    const modelAvailable = !live || result.mode === "ai";
-    if (!modelAvailable) {
-      modelFallbacks++;
-      failures.push(`${test.id}: model unavailable; rule fallback not counted as model result`);
+  if (!snapshot)
+    for (const test of utterances) {
+      const result = live ? await understandIntent(test.text) : classifyIntentOffline(test.text);
+      const modelAvailable = !live || result.mode === "ai";
+      if (!modelAvailable) {
+        modelFallbacks++;
+        failures.push(`${test.id}: model unavailable; rule fallback not counted as model result`);
+      }
+      if (result.typeSlug === test.expectedType && modelAvailable) intentCorrect++;
+      else if (modelAvailable)
+        failures.push(
+          `${test.id}: expected type ${test.expectedType ?? "clarify"}, got ${result.typeSlug ?? "clarify"}`,
+        );
+      if (sameSet(result.priorities, test.expectedPriorities) && modelAvailable)
+        prioritiesCorrect++;
+      else if (modelAvailable)
+        failures.push(
+          `${test.id}: expected priorities ${JSON.stringify(test.expectedPriorities)}, got ${JSON.stringify(result.priorities)}`,
+        );
     }
-    if (actualType === test.expectedType && modelAvailable) intentCorrect++;
-    else if (modelAvailable)
-      failures.push(
-        `${test.id}: expected type ${test.expectedType ?? "clarify"}, got ${actualType ?? "clarify"}`,
-      );
-    if (sameSet(result.priorities, test.expectedPriorities) && modelAvailable) prioritiesCorrect++;
-    else if (modelAvailable)
-      failures.push(
-        `${test.id}: expected priorities ${JSON.stringify(test.expectedPriorities)}, got ${JSON.stringify(result.priorities)}`,
-      );
-  }
   const summary = {
-    mode: live ? "live-anthropic" : "offline-structured-parser",
+    mode,
     generatedAt: new Date().toISOString(),
     extractionCases: cases.length,
+    evaluatedCases,
+    missingSnapshots,
     valuesChecked: valuesTotal,
-    fieldAccuracy: percent(valuesCorrect, valuesTotal),
-    groundingRate: percent(rawGrounded, rawNonNull),
+    fieldAccuracy: valuesTotal ? percent(valuesCorrect, valuesTotal) : null,
+    groundingRate: rawNonNull ? percent(rawGrounded, rawNonNull) : null,
     rawGrounded,
     rawNonNull,
     invalidRuns,
     retriedRuns,
-    intentCases: utterances.length,
-    intentAccuracy: percent(intentCorrect, utterances.length),
-    priorityExactAccuracy: percent(prioritiesCorrect, utterances.length),
+    intentCases: snapshot ? 0 : utterances.length,
+    intentAccuracy: snapshot ? null : percent(intentCorrect, utterances.length),
+    priorityExactAccuracy: snapshot ? null : percent(prioritiesCorrect, utterances.length),
     modelFallbacks,
     fieldBreakdown: Object.entries(fields).map(([key, value]) => ({
       key,
@@ -125,28 +156,42 @@ async function main() {
     })),
     failures,
   };
-  const rows = Object.entries(fields)
-    .sort(([a], [b]) => a.localeCompare(b))
+  const rows = summary.fieldBreakdown
+    .sort((a, b) => a.key.localeCompare(b.key))
     .map(
-      ([key, value]) =>
-        `| ${key} (${value.label}) | ${value.correct}/${value.total} | ${percent(value.correct, value.total)}% |`,
+      (value) =>
+        `| ${value.key} (${value.label}) | ${value.correct}/${value.total} | ${value.accuracy}% |`,
     )
     .join("\n");
-  const markdown = `# Evaluation report\n\n- Mode: **${summary.mode}**${live ? ` (model from LLM_MODEL)` : " — deterministic parser and keyword classifier, NOT an LLM evaluation"}\n- Generated (UTC): ${summary.generatedAt}\n- Dataset: ${cases.length} separately authored, manually checked fictional policy snippets; ${utterances.length} Persian utterances. This is a small synthetic test, not an insurer or independent domain-expert audit.\n- Extraction: ${valuesCorrect}/${valuesTotal} labeled field values correct (${summary.fieldAccuracy}%).\n- Evidence grounding: ${rawGrounded}/${rawNonNull} non-null values in the final raw response (before sanitization) contain a verbatim source quote (${summary.groundingRate}%). This tests substring grounding, not semantic entailment. Invalid runs: ${invalidRuns}; runs with retries: ${retriedRuns}.\n- Intent type/clarification accuracy: ${intentCorrect}/${utterances.length} (${summary.intentAccuracy}%). Exact priority-set accuracy: ${prioritiesCorrect}/${utterances.length} (${summary.priorityExactAccuracy}%). Live model fallbacks excluded: ${modelFallbacks}.\n- Pass thresholds: extraction ≥80%, raw grounding ≥95%, intent type ≥80%; zero live-model fallbacks.\n\n## Per-field accuracy\n\n| Field | Correct / total | Accuracy |\n| --- | ---: | ---: |\n${rows}\n\n## Failures\n\n${failures.length ? failures.map((failure) => `- ${failure.replace(/\n/g, " ")}`).join("\n") : "- None on this limited fixture set."}\n\n## Limits\n\nThe structured offline parser only understands labeled demo-style lines; it is not evidence of performance on real, unstructured policies. The raw evidence rate does not prove that a quotation entails a value. Unknowns are counted against labeled expectations, and invalid model outputs are never silently called successes.\n`;
-  await writeFile("EVAL_REPORT.md", markdown);
-  await writeFile("fixtures/eval-summary.json", JSON.stringify(summary, null, 2) + "\n");
+  const markdown = `# Evaluation report\n\n- Mode: **${mode}**${live ? " (configured LLM_MODEL)" : snapshot ? " (saved model output only; no offline substitution)" : " — deterministic rules, NOT an LLM evaluation"}\n- Generated (UTC): ${summary.generatedAt}\n- Dataset: ${cases.length} synthetic free-form Persian policy documents; ${utterances.length} Persian utterances. These cases and sample wording share authors and are not an independent or expert audit.\n- Extraction: ${valuesTotal ? `${valuesCorrect}/${valuesTotal} labeled values correct (${summary.fieldAccuracy}%)` : "not measured (no valid snapshots)"}, across ${evaluatedCases}/${cases.length} evaluated documents; missing/stale snapshots: ${missingSnapshots}.\n- Exact source quote in raw output: ${rawNonNull ? `${rawGrounded}/${rawNonNull} (${summary.groundingRate}%)` : "not measured (no non-null output)"}. Substring grounding is not semantic entailment. Invalid runs: ${invalidRuns}; retried runs: ${retriedRuns}.\n- Intent: ${snapshot ? "not evaluated in snapshot replay" : `${intentCorrect}/${utterances.length} (${summary.intentAccuracy}%); priorities ${prioritiesCorrect}/${utterances.length} (${summary.priorityExactAccuracy}%); live fallback exclusions: ${modelFallbacks}`}.\n- Pass thresholds: extraction ≥80%, raw grounding ≥95%, intent ≥80% when evaluated; no missing snapshots or live fallbacks.\n\n## Per-field accuracy\n\n| Field | Correct / total | Accuracy |\n| --- | ---: | ---: |\n${rows || "| None | — | — |"}\n\n## Failures\n\n${failures.length ? failures.map((failure) => `- ${failure.replace(/\n/g, " ")}`).join("\n") : "- None on this limited fixture set."}\n\n## Limits\n\nThe offline parser is a limited set of rules and cannot resolve every unstructured policy or implication. Snapshot replay is not a new live model call. All companies, plans, policies and annual premiums are fictional. Checking the presence, context and unit of a quotation is not proof that it entails the value; users must review the complete terms.\n`;
+  await mkdir("docs", { recursive: true });
+  const path = mode === "offline-rules" ? "docs/EVAL_REPORT.md" : `docs/EVAL_REPORT-${mode}.md`;
+  await writeFile(path, markdown);
+  if (mode === "offline-rules") {
+    await writeFile("fixtures/eval-summary.json", JSON.stringify(summary, null, 2) + "\n");
+    await writeFile("fixtures/eval-report.json", JSON.stringify(markdown) + "\n");
+  } else
+    await writeFile(`fixtures/eval-summary-${mode}.json`, JSON.stringify(summary, null, 2) + "\n");
   console.log(
-    `Mode: ${summary.mode}\nExtraction: ${valuesCorrect}/${valuesTotal} (${summary.fieldAccuracy}%)\nEvidence grounding: ${rawGrounded}/${rawNonNull} (${summary.groundingRate}%)\nIntent: ${intentCorrect}/${utterances.length} (${summary.intentAccuracy}%); priorities ${prioritiesCorrect}/${utterances.length} (${summary.priorityExactAccuracy}%)\nFailures: ${failures.length}. Report: EVAL_REPORT.md`,
+    `Mode: ${mode}\nExtraction: ${valuesTotal ? `${valuesCorrect}/${valuesTotal} (${summary.fieldAccuracy}%)` : "not measured"} from ${evaluatedCases}/${cases.length}; missing snapshots ${missingSnapshots}\nEvidence grounding: ${rawNonNull ? `${rawGrounded}/${rawNonNull} (${summary.groundingRate}%)` : "not measured (no non-null output)"}\nIntent: ${snapshot ? "not evaluated" : `${intentCorrect}/${utterances.length} (${summary.intentAccuracy}%)`}\nFailures: ${failures.length}. Report: ${path}`,
   );
   if (
-    summary.fieldAccuracy < 80 ||
-    summary.groundingRate < 95 ||
-    summary.intentAccuracy < 80 ||
-    modelFallbacks > 0
+    !valuesTotal ||
+    !rawNonNull ||
+    (summary.fieldAccuracy !== null && summary.fieldAccuracy < 80) ||
+    (summary.groundingRate !== null && summary.groundingRate < 95) ||
+    (!snapshot && (summary.intentAccuracy ?? 0) < 80) ||
+    missingSnapshots ||
+    modelFallbacks
   )
     process.exitCode = 1;
 }
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : "Evaluation failed.");
+  console.error(
+    error instanceof Error &&
+      /^(Choose --live|Live eval requires|Unknown schema|Unknown field)/.test(error.message)
+      ? error.message
+      : "Evaluation failed. Check configuration.",
+  );
   process.exitCode = 1;
 });

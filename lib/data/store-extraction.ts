@@ -17,6 +17,7 @@ export async function storeExtraction(
   input: ProductInput,
   schema: InsuranceSchema,
   result: ExtractionResult,
+  generatedAt?: string,
 ): Promise<void> {
   if (input.typeSlug !== schema.slug)
     throw new Error("Product and coverage schema types do not match.");
@@ -28,7 +29,11 @@ export async function storeExtraction(
   const runData = {
     model: result.model,
     valid,
-    rawOutput: jsonSafe({ final: result.rawOutput, attempts: result.history }),
+    rawOutput: jsonSafe({
+      final: result.rawOutput,
+      attempts: result.history,
+      ...(generatedAt ? { snapshotGeneratedAt: generatedAt } : {}),
+    }),
     errors: issues.length ? jsonSafe(issues) : Prisma.DbNull,
   };
   await getPrisma().$transaction(async (tx) => {

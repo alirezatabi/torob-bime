@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -8,13 +9,12 @@ import {
   Info,
   ListChecks,
 } from "lucide-react";
-import { readFile } from "node:fs/promises";
+import bundledSummary from "@/fixtures/eval-summary.json";
 import { z } from "zod";
 import { faNumber } from "@/lib/domain/format";
 
-export const dynamic = "force-dynamic";
 const summarySchema = z.object({
-  mode: z.enum(["live-anthropic", "offline-structured-parser"]),
+  mode: z.enum(["live-anthropic", "offline-rules", "snapshot-replay"]),
   generatedAt: z.string(),
   extractionCases: z.number(),
   valuesChecked: z.number(),
@@ -37,10 +37,12 @@ const summarySchema = z.object({
   ),
 });
 
+export const metadata: Metadata = { title: "ارزیابی" };
+
 export default async function EvaluationPage() {
   let summary: z.infer<typeof summarySchema>;
   try {
-    summary = summarySchema.parse(JSON.parse(await readFile("fixtures/eval-summary.json", "utf8")));
+    summary = summarySchema.parse(bundledSummary);
   } catch {
     return (
       <main className="mx-auto max-w-2xl px-5 py-24 text-center">
@@ -81,23 +83,23 @@ export default async function EvaluationPage() {
     <main className="mx-auto max-w-[1200px] px-5 pb-8 pt-7 sm:px-8">
       <nav
         aria-label="مسیر صفحه"
-        className="mb-8 flex items-center gap-2 text-[12px] text-[#63707d]"
+        className="mb-8 flex items-center gap-2 text-[13px] text-text-muted"
       >
         <Link href="/" className="hover:text-brand">
           خانه
         </Link>
         <ChevronLeft size={13} aria-hidden="true" />
-        <span className="text-[#63707d]">ارزیابی</span>
+        <span className="text-text-muted">ارزیابی</span>
       </nav>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[#fff2f3] px-3 py-1.5 text-[12px] font-bold text-brand">
+          <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-[13px] font-bold text-brand">
             <BarChart3 size={14} aria-hidden="true" /> پشت صحنه مقایسه
           </span>
-          <h1 className="mt-5 text-[28px] font-extrabold tracking-tight sm:text-[34px]">
+          <h1 className="mt-5 text-[28px] font-extrabold  sm:text-[34px]">
             نتیجه‌ها را بی‌پرده ببینیم
           </h1>
-          <p className="mt-3 text-sm leading-8 text-[#63707d]">
+          <p className="mt-3 text-sm leading-8 text-text-muted">
             آخرین اجرای ثبت‌شده روی {faNumber(summary.extractionCases)} متن ساختگی جدا از کاتالوگ و{" "}
             {faNumber(summary.intentCases)} درخواست فارسی. این آزمون کوچک جای بررسی کارشناس بیمه را
             نمی‌گیرد.
@@ -106,12 +108,12 @@ export default async function EvaluationPage() {
         <a
           href="/api/eval-report"
           download="EVAL_REPORT.md"
-          className="inline-flex items-center gap-2 rounded-xl border border-[#e7eaed] bg-white px-4 py-3 text-xs font-bold text-[#63707d] hover:border-[#edbdc1] hover:text-brand"
+          className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-4 py-3 text-xs font-bold text-text-muted hover:border-border hover:text-brand"
         >
           <Download size={15} aria-hidden="true" /> گزارش کامل
         </a>
       </div>
-      <div className="mt-7 flex items-start gap-3 rounded-xl border border-[#f4e5cf] bg-[#fffaf2] px-4 py-4 text-xs leading-7 text-[#8a5b38]">
+      <div className="mt-7 flex items-start gap-3 rounded-xl border border-border bg-warning-soft px-4 py-4 text-xs leading-7 text-warning">
         <FlaskConical size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
         <p>
           <strong>
@@ -124,23 +126,26 @@ export default async function EvaluationPage() {
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-2xl border border-[#e9ecef] bg-white p-5">
-            <p className="text-[12px] font-semibold text-[#63707d]">{metric.label}</p>
-            <p className="mt-4 text-[27px] font-extrabold text-[#414b56]">{metric.value}</p>
-            <p className="mt-1.5 text-[11px] text-[#63707d]">{metric.detail}</p>
+          <div
+            key={metric.label}
+            className="rounded-2xl border border-border bg-surface-raised p-5"
+          >
+            <p className="text-[13px] font-semibold text-text-muted">{metric.label}</p>
+            <p className="mt-4 text-[27px] font-extrabold text-text">{metric.value}</p>
+            <p className="mt-1.5 text-[13px] text-text-muted">{metric.detail}</p>
           </div>
         ))}
       </div>
       <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_1.25fr]">
-        <section className="rounded-[20px] border border-[#e9ecef] bg-white p-6">
+        <section className="rounded-[20px] border border-border bg-surface-raised p-6">
           <div className="flex items-center gap-2">
             <ListChecks size={19} className="text-brand" aria-hidden="true" />
             <h2 className="text-sm font-extrabold">خطاهای ثبت‌شده</h2>
-            <span className="ms-auto rounded-md bg-[#f7f8f9] px-2 py-1 text-[11px] text-[#63707d]">
+            <span className="ms-auto rounded-md bg-surface-muted px-2 py-1 text-[13px] text-text-muted">
               {faNumber(summary.failures.length)} مورد
             </span>
           </div>
-          <p className="mt-3 text-[12px] leading-6 text-[#63707d]">
+          <p className="mt-3 text-[13px] leading-6 text-text-muted">
             خطاها پنهان نمی‌شوند؛ متن‌های بدون قالب مشخص به‌ویژه برای روش آفلاین دشوارند.
           </p>
           {summary.failures.length ? (
@@ -153,22 +158,22 @@ export default async function EvaluationPage() {
               {summary.failures.map((failure, index) => (
                 <li
                   key={`${failure}-${index}`}
-                  className="rounded-lg bg-[#fafbfc] px-3 py-2 text-left text-[11px] leading-5 text-[#63707d]"
+                  className="rounded-lg bg-surface-muted px-3 py-2 text-left text-[13px] leading-5 text-text-muted"
                 >
                   {failure}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-xs text-[#397354]">در این مجموعه کوچک خطایی ثبت نشد.</p>
+            <p className="mt-4 text-xs text-success">در این مجموعه کوچک خطایی ثبت نشد.</p>
           )}
         </section>
-        <section className="rounded-[20px] border border-[#e9ecef] bg-white p-6">
+        <section className="rounded-[20px] border border-border bg-surface-raised p-6">
           <div className="flex items-center gap-2">
             <BarChart3 size={19} className="text-brand" aria-hidden="true" />
             <h2 className="text-sm font-extrabold">دقت به تفکیک پوشش</h2>
           </div>
-          <p className="mt-3 text-[12px] leading-6 text-[#63707d]">
+          <p className="mt-3 text-[13px] leading-6 text-text-muted">
             شامل موارد «نامشخص»؛ تعداد نمونه هر پوشش کم است.
           </p>
           <div
@@ -177,9 +182,9 @@ export default async function EvaluationPage() {
             aria-label="جدول دقت پوشش‌ها"
             className="mt-4 max-h-[325px] overflow-auto"
           >
-            <table className="w-full text-start text-[12px]">
+            <table className="w-full text-start text-[13px]">
               <caption className="sr-only">دقت به تفکیک فیلد بیمه</caption>
-              <thead className="sticky top-0 bg-white text-[#63707d]">
+              <thead className="sticky top-0 bg-surface-raised text-text-muted">
                 <tr>
                   <th className="pb-3 text-start font-medium">پوشش</th>
                   <th className="pb-3 text-start font-medium">درست / کل</th>
@@ -188,17 +193,17 @@ export default async function EvaluationPage() {
               </thead>
               <tbody>
                 {summary.fieldBreakdown.map((field) => (
-                  <tr key={field.key} className="border-t border-[#f2f3f4]">
-                    <td className="py-2.5 text-[#63707d]">
+                  <tr key={field.key} className="border-t border-border">
+                    <td className="py-2.5 text-text-muted">
                       {field.label}
-                      <span className="ms-1 text-[10px] text-[#63707d]" dir="ltr">
+                      <span className="ms-1 text-[13px] text-text-muted" dir="ltr">
                         ({field.key.split(".")[0]})
                       </span>
                     </td>
-                    <td className="text-[#63707d]">
+                    <td className="text-text-muted">
                       {faNumber(field.correct)} / {faNumber(field.total)}
                     </td>
-                    <td className="text-end font-semibold text-[#63707d]">
+                    <td className="text-end font-semibold text-text-muted">
                       {faNumber(field.accuracy)}٪
                     </td>
                   </tr>
@@ -208,7 +213,7 @@ export default async function EvaluationPage() {
           </div>
         </section>
       </div>
-      <p className="mt-5 flex items-start gap-2 text-[11px] leading-6 text-[#63707d]">
+      <p className="mt-5 flex items-start gap-2 text-[13px] leading-6 text-text-muted">
         <Info size={15} className="mt-1 shrink-0" aria-hidden="true" /> وجود نقل‌قول در متن،
         به‌تنهایی صحت معنایی برداشت را اثبات نمی‌کند. تاریخ آخرین اجرا:{" "}
         <span dir="ltr">{summary.generatedAt.slice(0, 10)}</span>
