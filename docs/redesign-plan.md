@@ -35,8 +35,8 @@ contracts + task plan + environment/agent roles
 - [x] M2: P0 grounding and prose fixtures, snapshot generation/replay with mocks, static evaluation assets, safe logging/fallback reasons, bounded API use and standard Prisma generation. Never claim a live model result without a key.
 - [x] M3: P1 shareable validated comparison state, mobile nav and keyboard input, consistent scoring/table, PII guard, caching, metadata/security and unified Anthropic client.
 - [x] M4: redesign home/comparison/evidence and behind-the-scenes views; responsive light/dark, keyboard and reduced-motion support; honest provenance and author attribution.
-- [ ] M5: verify official upstream guides, perform upgrades in separable steps only when checks stay green; add CI and Vercel/hosted Postgres deployment instructions.
-- [ ] M6: run typecheck, lint, format, unit/DB integration, eval, production build, Playwright/axe and available visual/performance checks; record exact evidence and limitations.
+- [x] M5: verify official upstream guides, perform upgrades in separable steps only when checks stay green; add CI and Vercel/hosted Postgres deployment instructions. Prisma 7 and Cache Components are explicitly deferred below.
+- [x] M6: run typecheck, lint, format, unit/DB integration, eval, production build, Playwright/axe and available visual/performance checks; record exact evidence and limitations in `docs/verification-report.md`. External manual verification remains open.
 
 ## Checkpoint evidence (before framework upgrades)
 
@@ -46,6 +46,12 @@ contracts + task plan + environment/agent roles
 - Offline rules: 129/132 labeled fields, 94/94 exact evidence quotes and 28/30 intent classifications on the synthetic set. Snapshot replay: 0/34 available, not measured; no Anthropic key was available. Model SDK and snapshot validation are tested using mocks only.
 - DB cache invalidation was verified by ingesting a temporary fictional premium change and observing it immediately, then reseeding the original sample. `next start` from a different working directory served `/evaluation` and `/api/eval-report` successfully.
 - Tokens and UI primitives are in place on Tailwind 3 as the reversible pre-upgrade checkpoint; Tailwind 4's `@theme` conversion is in M5. Native subagents and expert audits remain unavailable; checks are local, not delegated.
+
+## Final local checkpoint
+
+- The default production build, typecheck, lint, format and offline eval passed. With disposable PostgreSQL, 59 Vitest tests and 17 production Playwright tests passed; a separate mocked-network debounce test passed. The latest Lighthouse mobile single runs scored 94/100/100/100 for home and 93/100/100/100 for car comparison. See `docs/verification-report.md` for conditions, 32 screenshots and per-ID status.
+- No live Anthropic credentials or model snapshots were available; replay measured 0/34 and correctly exited nonzero. Native Windows, a clean networked Prisma installation, real HTTPS proxy behavior and hosted deployment still require user verification.
+- Prisma 7 was reverted after its engine CDN was blocked; Next Cache Components were evaluated but failed prerendering. The working stack remains Prisma 6 with the documented 60-second Next cache. Independent subagents/MCP were not available.
 
 ## Risk register
 
