@@ -126,7 +126,7 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
             rows={2}
             maxLength={500}
             placeholder={`مثلاً ${examples[exampleIndex].text}...`}
-            className="min-h-[72px] w-full resize-none border-0 bg-transparent text-base leading-8 text-text outline-none placeholder:text-text-muted focus-visible:outline-none"
+            className="min-h-[72px] w-full resize-none border-0 bg-transparent text-base leading-8 text-text placeholder:text-text-muted"
           />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-2 pt-2">

@@ -1,6 +1,43 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* CSS-first semantic theme. Dark/light values are defined below. */
+@theme inline {
+  --font-sans: var(--font-vazir-arabic), var(--font-vazir-latin), sans-serif;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.65;
+  --color-surface: rgb(var(--surface));
+  --color-surface-muted: rgb(var(--surface-muted));
+  --color-surface-raised: rgb(var(--surface-raised));
+  --color-border: rgb(var(--border));
+  --color-text: rgb(var(--text));
+  --color-text-muted: rgb(var(--text-muted));
+  --color-ink: rgb(var(--text));
+  --color-muted: rgb(var(--text-muted));
+  --color-line: rgb(var(--border));
+  --color-paper: rgb(var(--surface-muted));
+  --color-brand: rgb(var(--brand));
+  --color-brand-strong: rgb(var(--brand-strong));
+  --color-brand-soft: rgb(var(--brand-soft));
+  --color-brand-dark: rgb(var(--brand-strong));
+  --color-brand-light: rgb(var(--brand-soft));
+  --color-on-brand: rgb(var(--on-brand));
+  --color-success: rgb(var(--success));
+  --color-success-soft: rgb(var(--success-soft));
+  --color-success-strong: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+  --color-warning-soft: rgb(var(--warning-soft));
+  --color-warning-strong: rgb(var(--warning));
+  --color-danger: rgb(var(--danger));
+  --color-danger-soft: rgb(var(--danger-soft));
+  --color-danger-strong: rgb(var(--danger));
+  --color-info: rgb(var(--info));
+  --color-info-soft: rgb(var(--info-soft));
+  --color-info-strong: rgb(var(--info));
+  --shadow-card: var(--shadow-card-value);
+  --shadow-float: var(--shadow-float-value);
+}
 
 /* The only color definitions live here; all component colors are semantic roles. */
 :root,
@@ -24,8 +61,8 @@ html[data-theme="light"] {
   --danger-soft: 255 238 236;
   --info: 42 87 121;
   --info-soft: 233 243 250;
-  --shadow-card: 0 9px 28px rgb(28 48 41 / 6%);
-  --shadow-float: 0 20px 60px rgb(28 48 41 / 13%);
+  --shadow-card-value: 0 9px 28px rgb(28 48 41 / 6%);
+  --shadow-float-value: 0 20px 60px rgb(28 48 41 / 13%);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
@@ -48,8 +85,8 @@ html[data-theme="light"] {
     --danger-soft: 70 39 39;
     --info: 161 209 244;
     --info-soft: 33 55 70;
-    --shadow-card: 0 9px 28px rgb(0 0 0 / 17%);
-    --shadow-float: 0 20px 60px rgb(0 0 0 / 35%);
+    --shadow-card-value: 0 9px 28px rgb(0 0 0 / 17%);
+    --shadow-float-value: 0 20px 60px rgb(0 0 0 / 35%);
   }
 }
 html[data-theme="dark"] {
@@ -72,8 +109,8 @@ html[data-theme="dark"] {
   --danger-soft: 70 39 39;
   --info: 161 209 244;
   --info-soft: 33 55 70;
-  --shadow-card: 0 9px 28px rgb(0 0 0 / 17%);
-  --shadow-float: 0 20px 60px rgb(0 0 0 / 35%);
+  --shadow-card-value: 0 9px 28px rgb(0 0 0 / 17%);
+  --shadow-float-value: 0 20px 60px rgb(0 0 0 / 35%);
 }
 * {
   box-sizing: border-box;
