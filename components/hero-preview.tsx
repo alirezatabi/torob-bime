@@ -17,7 +17,7 @@ export function HeroPreview({
     .filter((field) => !field.isPremium && !field.isExclusion && field.kind === "boolean")
     .slice(0, 3);
   return (
-    <div className="relative mx-auto max-w-[470px]">
+    <div className="hero-preview-enter relative mx-auto max-w-[470px]">
       <div
         aria-hidden="true"
         className="absolute -inset-4 -z-10 rounded-[2.5rem] bg-brand-soft sm:-inset-7"

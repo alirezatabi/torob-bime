@@ -99,3 +99,19 @@ test("budget flags only fictional annual premiums", async ({ page }) => {
   await expect(page.getByText("حق‌بیمه سالانه نمونه، قیمت واقعی نیست").first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "پوشش در برابر حق‌بیمه نمونه" })).toBeVisible();
 });
+
+test("hero preview enters once and honors reduced-motion preferences", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const preview = page.locator(".hero-preview-enter");
+  await expect(preview).toBeVisible();
+  expect(
+    await preview.evaluate((element) => getComputedStyle(element).animationIterationCount),
+  ).toBe("1");
+  expect(await preview.evaluate((element) => getComputedStyle(element).animationDuration)).toBe(
+    "0.2s",
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reduced = await preview.evaluate((element) => getComputedStyle(element).animationDuration);
+  expect(parseFloat(reduced)).toBeLessThan(0.001);
+});

@@ -170,6 +170,19 @@ code,
   background: rgb(var(--border));
   border-radius: 8px;
 }
+@keyframes preview-enter {
+  from {
+    opacity: 0.96;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-preview-enter {
+  animation: preview-enter 200ms ease-out both;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
