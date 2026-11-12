@@ -136,7 +136,7 @@ export function IntentSearch({ aiEnabled }: { aiEnabled: boolean }) {
           </span>
           <Button type="submit" disabled={loading} className="w-full sm:w-auto">
             {loading && <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />}
-            {loading ? "در حال بررسی..." : "بگرد و مقایسه کن"}
+            {loading ? "در حال بررسی..." : "جست‌وجو و مقایسه"}
             {!loading && <ArrowLeft size={17} aria-hidden="true" />}
           </Button>
         </div>
