@@ -1,7 +1,7 @@
 # Evaluation report
 
 - Mode: **offline-rules** — deterministic rules, NOT an LLM evaluation
-- Generated (UTC): 2026-11-12T11:58:03.524Z
+- Generated (UTC): 2026-11-12T13:00:20.409Z
 - Dataset: 34 synthetic free-form Persian policy documents; 30 Persian utterances. These cases and sample wording share authors and are not an independent or expert audit.
 - Extraction: 129/132 labeled values correct (97.7%), across 34/34 evaluated documents; missing/stale snapshots: 0.
 - Exact source quote in raw output: 94/94 (100%). Substring grounding is not semantic entailment. Invalid runs: 0; retried runs: 0.
