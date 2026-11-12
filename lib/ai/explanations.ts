@@ -53,7 +53,7 @@ export async function selectExplanationKeys(
   const defaultItems = fallback(products, schema, priorities);
   if (!aiConfigured()) return { mode: "rules", items: defaultItems };
   const client = anthropicClient();
-  // Pass eligible normalized values and labels only — never source text or personal input.
+  // Pass eligible normalized values and labels only — never the full policy or personal input.
   const data = products.map((product) => {
     const scoreKeys = new Set(
       scoreContributionFacts(product, schema, priorities, products).map((fact) => fact.field.key),

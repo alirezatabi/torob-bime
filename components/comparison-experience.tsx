@@ -4,7 +4,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { Check, Copy, ShieldAlert, X } from "lucide-react";
 import { faNumber, formatMoney, formatValue } from "@/lib/domain/format";
-import { getCoverage, limitationFacts, isNonCoverage, rankProducts } from "@/lib/domain/ranking";
+import {
+  getCoverage,
+  isNonCoverage,
+  isScoredField,
+  limitationFacts,
+  rankProducts,
+} from "@/lib/domain/ranking";
 import { readComparisonState, type ComparisonState } from "@/lib/domain/comparison-query";
 import { toLatinDigits } from "@/lib/domain/text";
 import type {
@@ -70,8 +76,13 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
   const [source, setSource] = useState<SourceDialogData | null>(null);
   const [notice, setNotice] = useState("");
   const [budgetError, setBudgetError] = useState("");
-  const [aiSelection, setAiSelection] = useState<z.infer<typeof explanationResponse> | null>(null);
+  const [aiSelection, setAiSelection] = useState<{
+    key: string;
+    result: z.infer<typeof explanationResponse>;
+  } | null>(null);
   const priorityKey = [...priorities].sort().join(",");
+  const explanationKey = `${schema.slug}:${priorityKey}`;
+  const currentSelection = aiSelection?.key === explanationKey ? aiSelection.result : null;
   const ranked = useMemo(
     () => rankProducts(products, schema, priorities, constraints),
     [products, schema, priorities, constraints],
@@ -80,6 +91,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
     const item = ranked.find(({ product }) => product.slug === slug);
     return item ? [item] : [];
   });
+  const comparedByRank = ranked.filter(({ product }) => selected.includes(product.slug));
   const rows = schema.fields.map((field) => ({
     field,
     differs:
@@ -106,7 +118,8 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
         .then((response) => (response.ok ? response.json() : null))
         .then((body: unknown) => {
           const parsed = explanationResponse.safeParse(body);
-          if (parsed.success) setAiSelection(parsed.data);
+          if (parsed.success && !controller.signal.aborted)
+            setAiSelection({ key: explanationKey, result: parsed.data });
         })
         .catch(() => {
           /* Deterministic facts remain visible. */
@@ -116,7 +129,7 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [hasAi, schema.slug, priorityKey]);
+  }, [hasAi, schema.slug, priorityKey, explanationKey]);
 
   // Native history integrates with Next's router without a server round-trip and preserves Back.
   function changeQuery(key: "priorities" | "required" | "compare" | "budget", value: string) {
@@ -257,18 +270,16 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
           </Disclosure>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {schema.fields
-            .filter((field) => !field.isExclusion && !field.isPremium && field.kind !== "text")
-            .map((field) => (
-              <Chip
-                key={field.key}
-                active={priorities.includes(field.key)}
-                onClick={() => togglePriority(field.key)}
-              >
-                {priorities.includes(field.key) && <Check size={15} aria-hidden="true" />}
-                {field.labelFa}
-              </Chip>
-            ))}
+          {schema.fields.filter(isScoredField).map((field) => (
+            <Chip
+              key={field.key}
+              active={priorities.includes(field.key)}
+              onClick={() => togglePriority(field.key)}
+            >
+              {priorities.includes(field.key) && <Check size={15} aria-hidden="true" />}
+              {field.labelFa}
+            </Chip>
+          ))}
         </div>
         {constraints.length > 0 && (
           <div
@@ -388,22 +399,21 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
               طرح‌ها به ترتیب تناسب پوشش
             </h2>
             <p className="mt-2 text-sm leading-7 text-text-muted">
-              امتیاز نسبی پوشش، نه توصیه خرید یا اعتبار شرکت است.
+              برای هر طرح، یک معیار مؤثر و یک مورد بدون پوشش را با منبع ببینید. امتیاز، توصیه خرید
+              یا اعتبار شرکت نیست.
             </p>
           </div>
-          <span className="text-xs text-text-muted">
-            {aiSelection?.mode === "ai"
-              ? "انتخاب نکات با مدل؛ مقادیر از متن مستند"
-              : "انتخاب نکات قانون‌محور از داده‌های مستند"}
-          </span>
         </div>
-        <div className="scrollbar-thin -mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+        <div className="scrollbar-thin -mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-4 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0">
           {ranked.map((item, index) => {
-            const chosen = aiSelection?.items.find((row) => row.productSlug === item.product.slug);
+            const chosen = currentSelection?.items.find(
+              (row) => row.productSlug === item.product.slug,
+            );
             return (
               <PlanCard
                 key={item.product.slug}
                 ranked={item}
+                products={products}
                 index={index}
                 schema={schema}
                 priorities={priorities}
@@ -412,14 +422,17 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
                 budget={budget}
                 onToggle={toggleProduct}
                 onSource={showSource}
-                preferredKeys={[chosen?.positiveFieldKey, chosen?.limitationFieldKey].filter(
-                  (key): key is string => Boolean(key),
-                )}
+                suggestion={
+                  chosen && currentSelection
+                    ? { ...chosen, mode: currentSelection.mode }
+                    : undefined
+                }
               />
             );
           })}
         </div>
-        <p className="mt-2 text-xs text-text-muted">
+        <p className="mt-2 text-xs leading-7 text-text-muted">
+          <span className="md:hidden">برای دیدن طرح‌های دیگر، کارت‌ها را به طرفین بکشید. </span>
           برای جدول، حداقل ۲ و حداکثر ۶ طرح انتخاب کنید.
         </p>
       </section>
@@ -436,40 +449,49 @@ export function ComparisonExperience({ schema, products, catalogueNotice, initia
             <h2 id="limitations-title" className="mt-1 text-xl font-extrabold">
               چه چیزهایی تحت پوشش نیست؟
             </h2>
-            <p className="mt-2 text-xs leading-6 text-text-muted">
-              نمونه‌ای از استثناها و محدودیت‌های ثبت‌شده؛ ممکن است همه شرایط را شامل نشود.
+            <p className="mt-2 text-sm leading-7 text-text-muted">
+              خلاصه‌ای از موارد ثبت‌شده در طرح‌های انتخابی، به ترتیب رتبه؛ ممکن است همه شرایط را
+              شامل نشود.
             </p>
           </div>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {compared.map(({ product }) => (
-            <article
-              key={product.slug}
-              className="rounded-2xl border border-border bg-surface-raised p-4"
-            >
-              <h3 className="text-sm font-extrabold">{product.nameFa}</h3>
-              <p className="text-xs text-text-muted">{product.insurerNameFa}</p>
-              {limitationFacts(product, schema, priorities)
-                .filter(isNonCoverage)
-                .slice(0, 2)
-                .map(({ field, coverage }) => (
-                  <div key={field.key} className="mt-2 flex items-center gap-1 text-xs leading-6">
-                    <span className="flex-1">
-                      {field.isExclusion
-                        ? String(coverage.value)
-                        : `${field.labelFa}: ${formatValue(field, coverage.value)}`}
-                    </span>
-                    <EvidenceButton
-                      product={product}
-                      field={field}
-                      coverage={coverage}
-                      onSource={showSource}
-                      compact
-                    />
-                  </div>
-                ))}
-            </article>
-          ))}
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {comparedByRank.map(({ product }) => {
+            const nonCoverage = limitationFacts(product, schema, priorities)
+              .filter(isNonCoverage)
+              .slice(0, 2);
+            return (
+              <article
+                key={product.slug}
+                className="rounded-2xl border border-border bg-surface-raised p-4"
+              >
+                <h3 className="text-base font-extrabold">{product.nameFa}</h3>
+                <p className="text-xs text-text-muted">{product.insurerNameFa}</p>
+                {nonCoverage.length ? (
+                  nonCoverage.map(({ field, coverage }) => (
+                    <div key={field.key} className="mt-2 flex items-center gap-2 text-sm leading-7">
+                      <span className="flex-1">
+                        {field.isExclusion
+                          ? String(coverage.value)
+                          : `${field.labelFa}: ${formatValue(field, coverage.value)}`}
+                      </span>
+                      <EvidenceButton
+                        product={product}
+                        field={field}
+                        coverage={coverage}
+                        onSource={showSource}
+                        compact
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="mt-2 text-sm leading-7 text-text-muted">
+                    مورد صریحی از نبود پوشش ثبت نشده؛ این به معنی نبود محدودیت نیست.
+                  </p>
+                )}
+              </article>
+            );
+          })}
         </div>
       </section>
       <ComparisonTable

@@ -51,8 +51,8 @@ export function ScoreRing({ score }: { score: number }) {
         </span>
       </div>
       <p className="text-xs font-bold leading-6 text-text">
-        {faNumber(safe)}٪ هم‌خوان با نیاز شما{" "}
-        <span className="block font-normal text-text-muted">امتیاز نسبی پوشش</span>
+        امتیاز پوشش: {faNumber(safe)} از ۱۰۰
+        <span className="block font-normal text-text-muted">نسبی به طرح‌های این صفحه</span>
       </p>
     </div>
   );
