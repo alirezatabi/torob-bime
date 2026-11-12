@@ -90,6 +90,11 @@ test("behind the scenes links source spans to fields and exposes provenance", as
   await expect(field).toHaveAttribute("aria-pressed", "true");
   const quote = page.getByRole("button", { name: /در صورت تحقق شرایط این نمونه، تصادف/ });
   await expect(quote).toHaveAttribute("aria-pressed", "true");
+  const otherField = page.getByRole("button", { name: /سرقت کلی خودرو.*اطمینان/ });
+  await otherField.focus();
+  await expect(field).toHaveAttribute("aria-pressed", "false");
+  await quote.focus();
+  await expect(field).toHaveAttribute("aria-pressed", "true");
 });
 
 test("budget flags only fictional annual premiums", async ({ page }) => {

@@ -2,10 +2,10 @@
 import { useMemo, useState } from "react";
 import { formatValue, faNumber } from "@/lib/domain/format";
 import { getCoverage } from "@/lib/domain/ranking";
+import { buildEvidenceSegments } from "@/lib/domain/evidence-segments";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
 import { ProvenanceText } from "./provenance";
 
-type Segment = { text: string; key?: string };
 export function ExtractionInspector({
   schema,
   product,
@@ -15,27 +15,11 @@ export function ExtractionInspector({
   product: ComparableProduct;
   sourceText: string;
 }) {
-  const [active, setActive] = useState<string | null>(null);
-  const segments = useMemo(() => {
-    const spans = product.coverages
-      .flatMap((value) => {
-        const index = value.evidence ? sourceText.indexOf(value.evidence) : -1;
-        return index < 0 || !value.evidence
-          ? []
-          : [{ start: index, end: index + value.evidence.length, key: value.fieldKey }];
-      })
-      .sort((a, b) => a.start - b.start || b.end - a.end);
-    const parts: Segment[] = [];
-    let cursor = 0;
-    for (const span of spans) {
-      if (span.start < cursor) continue;
-      if (span.start > cursor) parts.push({ text: sourceText.slice(cursor, span.start) });
-      parts.push({ text: sourceText.slice(span.start, span.end), key: span.key });
-      cursor = span.end;
-    }
-    if (cursor < sourceText.length) parts.push({ text: sourceText.slice(cursor) });
-    return parts;
-  }, [product.coverages, sourceText]);
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const segments = useMemo(
+    () => buildEvidenceSegments(sourceText, product.coverages),
+    [product.coverages, sourceText],
+  );
   return (
     <>
       <div className="mt-6 rounded-2xl bg-info-soft p-4 text-xs leading-7 text-info">
@@ -56,16 +40,16 @@ export function ExtractionInspector({
           </div>
           <div className="mt-5 whitespace-pre-wrap rounded-2xl bg-surface-muted p-4 text-sm leading-8 text-text">
             {segments.map((segment, index) =>
-              segment.key ? (
+              segment.keys.length ? (
                 <button
-                  key={`${segment.key}-${index}`}
+                  key={index}
                   type="button"
-                  onMouseEnter={() => setActive(segment.key!)}
-                  onFocus={() => setActive(segment.key!)}
-                  onClick={() => setActive(segment.key!)}
-                  title={`نمایش فیلد ${schema.fields.find((field) => field.key === segment.key)?.labelFa ?? "منبع"}`}
-                  aria-pressed={active === segment.key}
-                  className={`inline min-h-11 rounded-md border-b-2 px-1 text-start font-medium transition ${active === segment.key ? "border-brand bg-brand-soft text-brand-strong" : "border-success bg-success-soft text-text"}`}
+                  onMouseEnter={() => setActiveKeys(segment.keys)}
+                  onFocus={() => setActiveKeys(segment.keys)}
+                  onClick={() => setActiveKeys(segment.keys)}
+                  title={`نمایش فیلدهای ${segment.keys.map((key) => schema.fields.find((field) => field.key === key)?.labelFa ?? key).join("، ")}`}
+                  aria-pressed={segment.keys.some((key) => activeKeys.includes(key))}
+                  className={`inline min-h-11 rounded-md border-b-2 px-1 text-start font-medium transition ${segment.keys.some((key) => activeKeys.includes(key)) ? "border-brand bg-brand-soft text-brand-strong" : "border-success bg-success-soft text-text"}`}
                 >
                   {segment.text}
                 </button>
@@ -92,11 +76,11 @@ export function ExtractionInspector({
                 <button
                   key={field.key}
                   type="button"
-                  onMouseEnter={() => setActive(field.key)}
-                  onFocus={() => setActive(field.key)}
-                  onClick={() => setActive(field.key)}
-                  aria-pressed={active === field.key}
-                  className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border p-3 text-start transition ${active === field.key ? "border-brand bg-brand-soft" : "border-border bg-surface-raised hover:bg-surface-muted"}`}
+                  onMouseEnter={() => setActiveKeys([field.key])}
+                  onFocus={() => setActiveKeys([field.key])}
+                  onClick={() => setActiveKeys([field.key])}
+                  aria-pressed={activeKeys.includes(field.key)}
+                  className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border p-3 text-start transition ${activeKeys.includes(field.key) ? "border-brand bg-brand-soft" : "border-border bg-surface-raised hover:bg-surface-muted"}`}
                 >
                   <span>
                     <span className="block text-xs font-bold">{field.labelFa}</span>
