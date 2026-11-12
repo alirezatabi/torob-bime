@@ -2,6 +2,12 @@
 
 **Date:** 2026-11-12. **Scope:** fictional demo, not a production insurance service. The following statuses distinguish implemented work from external verification still required. No live Anthropic result, native Windows run or deployment is claimed.
 
+## Interview UX pass
+
+The home page now states the comparison purpose and fictional-data caveat up front. Form labels, hints, validation, focus and a keyboard-operable RTL select are consistent in both themes. Wider ranked cards show a sourced score contribution and a sourced non-coverage when available; neither is presented as the complete explanation of the rank. Section shortcuts and the mobile two-plan table make the flow easier to present. Rendering, ranking and model-selected facts treat values without evidence as unknown. See [the review and decisions](interview-ux-plan.md) and [the demo script](../DEMO.md).
+
+The comparison no longer streams its interactive island inside a Suspense boundary: rapid history traversal during partial hydration could strand stale server-rendered controls. The home retains a skeleton; comparison entry links and the confirmation button announce pending navigation instead. Delayed-hydration and Back/Forward tests cover the trade-off.
+
 ## Findings by ID
 
 | ID   | Status                                      | Evidence / remaining boundary                                                                                                                                                                                                               |
@@ -29,14 +35,14 @@
 | B-21 | Deferred in part                            | Next 16.4.6, React 19.3.1, Tailwind 4.3.5, ESLint 9 and React Compiler build and test successfully. Prisma 7 migration was reverted after its engine download failed; Cache Components were evaluated but disabled after a prerender error. |
 | D-01 | Fixed                                       | Tailwind 4 semantic light/dark tokens; static raw-hex/type-size guard and documented normal-text contrast-pair tests.                                                                                                                       |
 | D-02 | Fixed                                       | Local variable Vazirmatn via `next/font/local`, Persian sizing, tabular numbers and LTR isolation; computed visible-size browser checks.                                                                                                    |
-| D-03 | Fixed                                       | Reusable button, chip, badge, disclosure/tooltip, native drawer, tabs, skeleton, toast, score and insurer-mark primitives.                                                                                                                  |
-| D-04 | Fixed                                       | Intent confirmation, catalogue-backed hero and categories, example placeholders cycling on focus, and one-time reduced-motion-aware entry.                                                                                                  |
+| D-03 | Fixed                                       | Reusable button, chip, badge, disclosure/tooltip, drawer, tabs, skeleton, score and insurer mark; native text/checkbox controls and a keyboard-operable Radix Select.                                                                       |
+| D-04 | Fixed                                       | Intent confirmation, catalogue-backed hero and categories, example prompts, and one-time reduced-motion-aware entry.                                                                                                                        |
 | D-05 | Deferred in part                            | Server-rendered shell, ranked cards, mobile tray/two-plan mode, grouped table and evidence drawer implemented. The URL-driven comparison remains one relatively large client island, not several small islands.                             |
 | D-06 | Fixed                                       | Bidirectional keyboard/hover inspector, unknown values and provenance; unit and DB-backed browser tests cover overlapping quotations.                                                                                                       |
-| D-07 | Fixed                                       | Layout-shaped skeletons, short transitions and one-time animation with reduced-motion override; optional View Transitions not enabled.                                                                                                      |
+| D-07 | Fixed with loading trade-off                | Home has a layout-shaped skeleton; comparison uses announced pending states rather than a streaming skeleton to protect early history navigation. Reduced motion is respected; View Transitions are not enabled.                            |
 | D-08 | Fixed                                       | System preference plus pre-paint persisted manual theme; light/dark browser tests and screenshots.                                                                                                                                          |
 | D-09 | Deferred human audit                        | Automated axe WCAG 2/2.1/2.2 checks passed on seven routes and open drawer, in both themes at two widths. This is not an AA certification or a substitute for screen-reader/manual review.                                                  |
-| D-10 | Fixed                                       | 360, 390, 768, 1024 and 1280 px overflow checks plus 32 screenshots; mobile tray and drawer.                                                                                                                                                |
+| D-10 | Fixed                                       | 360, 390, 768, 1024 and 1280 px overflow checks plus 36 screenshots, including the open select; mobile tray and drawer.                                                                                                                     |
 | D-11 | Fixed for measured local runs               | Lighthouse mobile scores below meet requested budgets in this local run; no field/deployment performance claim.                                                                                                                             |
 | D-12 | Fixed                                       | Respectful «شما» voice, honest labels and updated selectors; [Persian literal change inventory](microcopy-changes.md) includes dynamic fragments and scope limitations.                                                                     |
 | D-13 | Fixed                                       | Independent shield/lens identity, header/footer lockup, SVG icon and independent-demo notice.                                                                                                                                               |
@@ -44,22 +50,22 @@
 
 ## Measured checks
 
-- `typecheck`, `lint` (including semantic-style check), `format:check`, offline `eval`, and the default production `build` passed. **59 Vitest tests passed**, including two tests against disposable PostgreSQL 18.6. Expected provider-error messages in mocked failure tests contain no request text or credentials.
-- **18 Playwright tests passed** against the embed-enabled production preview and disposable PostgreSQL, including overlapping quotes and mobile pair selection; the previous 17-test suite also passed against the default production build. The separate **1 mocked-network test passed**: five rapid priority changes produced at most one debounced explanation request. Automated axe reported no tagged violations on 28 route/theme/width combinations plus four open-drawer checks. This is not a manual accessibility audit.
+- `typecheck`, `lint` (including semantic-style check), `format:check`, offline `eval`, and the default production `build` passed. **66 Vitest tests passed**, including two tests against disposable PostgreSQL 18.6. Expected provider-error messages in mocked failure tests contain no request text or credentials.
+- **33 Playwright tests passed** against the default production build and disposable PostgreSQL, including delayed hydration, source-backed ranking, keyboard controls, navigation and mobile pair selection. **3 mocked-AI browser tests passed** for debouncing, eligible attribution and Back-state isolation; these are not live model evaluations. Automated axe reported no tagged violations on 28 route/theme/width combinations, four open-drawer checks and two open-select checks. This is not a manual accessibility audit.
 - Offline rules on synthetic, non-independent data: **129/132 (97.7%) labeled values**, **94/94 (100%) exact raw non-null quotes**, **28/30 (93.3%) intent types**, and **28/30 (93.3%) exact priority sets**. The [offline report](EVAL_REPORT.md) records seven individual failures; the quote denominator excludes nulls.
 - Snapshot replay: **0/34** available, so accuracy and grounding are **not measured**, not zero-percent model results. The [snapshot report](EVAL_REPORT-snapshot-replay.md) records the missing cases; the command exits nonzero as intended. Live mode was not run. Mocks never count as model evidence.
-- Lighthouse 13.6.0, Headless Chrome 153, simulated mobile 412×823 with default simulated throttling, local DB-backed production build, warmed server and development preview embedding enabled. One run per route, 2026-11-12 13:02–13:03 UTC:
+- Lighthouse 13.6.0, Headless Chrome 153, simulated mobile 412×823 with default simulated throttling, local DB-backed production build, warmed server and development preview embedding enabled. One run per route, 2026-11-12 14:31–14:32 UTC:
 
 | Route               | Performance | Accessibility | Best practices | SEO |    LCP |    TBT | CLS |
 | ------------------- | ----------: | ------------: | -------------: | --: | -----: | -----: | --: |
-| `/`                 |          94 |           100 |            100 | 100 | 2.83 s | 155 ms |   0 |
-| `/compare/car-body` |          93 |           100 |            100 | 100 | 3.12 s |  95 ms |   0 |
+| `/`                 |          98 |           100 |            100 | 100 | 0.93 s | 158 ms |   0 |
+| `/compare/car-body` |          93 |           100 |            100 | 100 | 0.82 s | 313 ms |   0 |
 
 These are single local simulated measurements, not field data; repeat them on the actual deployment. Raw local Lighthouse JSON was saved outside the repository under `/home/user/torob-lighthouse/`.
 
 ## Screenshots
 
-Captured from the local DB-backed production preview with fictional data and reduced motion. Each route is shown at both widths and themes; the drawer images are viewport captures, other images full-page. Reproduce with `scripts/capture-screenshots.mjs` after starting the server.
+Captured from the local DB-backed production preview with fictional data and reduced motion. Each route is shown at both widths and themes; the drawer and open-select images are viewport captures, other images full-page. Reproduce with `scripts/capture-screenshots.mjs` after starting the server.
 
 | View                 | Light 390                                   | Light 1280                                    | Dark 390                                   | Dark 1280                                    |
 | -------------------- | ------------------------------------------- | --------------------------------------------- | ------------------------------------------ | -------------------------------------------- |
@@ -71,6 +77,7 @@ Captured from the local DB-backed production preview with fictional data and red
 | Roadmap              | [390](screenshots/roadmap-light-390.jpg)    | [1280](screenshots/roadmap-light-1280.jpg)    | [390](screenshots/roadmap-dark-390.jpg)    | [1280](screenshots/roadmap-dark-1280.jpg)    |
 | Evidence drawer      | [390](screenshots/evidence-light-390.jpg)   | [1280](screenshots/evidence-light-1280.jpg)   | [390](screenshots/evidence-dark-390.jpg)   | [1280](screenshots/evidence-dark-1280.jpg)   |
 | Extraction inspector | [390](screenshots/inspector-light-390.jpg)  | [1280](screenshots/inspector-light-1280.jpg)  | [390](screenshots/inspector-dark-390.jpg)  | [1280](screenshots/inspector-dark-1280.jpg)  |
+| Open type select     | [390](screenshots/select-light-390.jpg)     | [1280](screenshots/select-light-1280.jpg)     | [390](screenshots/select-dark-390.jpg)     | [1280](screenshots/select-dark-1280.jpg)     |
 
 ## Decisions and manual follow-up
 

@@ -21,6 +21,7 @@ const pages = [
   ["roadmap", "/roadmap"],
   ["inspector", "/compare/car-body/extraction/car-body-aftab"],
   ["evidence", "/compare/travel?required=baggage_delay"],
+  ["select", "/"],
 ];
 try {
   for (const theme of ["light", "dark"]) {
@@ -44,12 +45,19 @@ try {
             .click();
           await page.getByRole("dialog").waitFor();
         }
+        if (name === "select") {
+          await page.getByRole("button", { name: "خسارت جزئی خودرو" }).click();
+          await page.getByRole("button", { name: "جست‌وجو و مقایسه" }).click();
+          const confirmation = page.getByRole("region", { name: "تأیید برداشت از نیاز" });
+          await confirmation.getByRole("combobox", { name: "نوع بیمه" }).click();
+          await page.getByRole("listbox").waitFor();
+        }
         const file = path.join(output, `${name}-${theme}-${width}.jpg`);
         await page.screenshot({
           path: file,
           type: "jpeg",
           quality: 65,
-          fullPage: name !== "evidence",
+          fullPage: name !== "evidence" && name !== "select",
           animations: "disabled",
         });
         console.log(file);
