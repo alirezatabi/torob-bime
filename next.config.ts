@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 const previewEmbedding = process.env.ALLOW_PREVIEW_EMBED === "true";
 const nextConfig: NextConfig = {
+  reactCompiler: true,
   // Explicit opt-in only for a trusted development proxy; never hard-code preview hosts.
   allowedDevOrigins: process.env.DEV_PREVIEW_ORIGINS?.split(",")
     .map((origin) => origin.trim())
