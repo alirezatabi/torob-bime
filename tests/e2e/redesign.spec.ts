@@ -46,8 +46,13 @@ test("comparison URL persists priority, required coverage and selected plans; Ba
   await page.goBack();
   await expect(page).not.toHaveURL(customized);
   await expect(choice).toHaveAttribute("aria-pressed", "true");
+  // Consecutive history transitions must not leave React state behind the URL.
   await page.goBack();
+  await expect(page).not.toHaveURL(/priorities=/);
   await expect(choice).toHaveAttribute("aria-pressed", "false");
+  await page.goForward();
+  await expect(page).toHaveURL(/priorities=total_theft/);
+  await expect(choice).toHaveAttribute("aria-pressed", "true");
 });
 
 test("mobile navigation, theme persistence and 360–1280 layouts", async ({ page }) => {

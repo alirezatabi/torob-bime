@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import { ArrowLeft, Check, ChevronLeft, Copy, Info, ShieldAlert, X } from "lucide-react";
@@ -32,6 +32,20 @@ const explanationResponse = z.object({
     }),
   ),
 });
+// Next's router can batch consecutive popstate transitions. Subscribe to the
+// actual browser URL as well, so Back/Forward never leaves the controls stale.
+const queryChange = "torob-comparison-query-change";
+function subscribeQuery(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(queryChange, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(queryChange, onChange);
+  };
+}
+function browserQuery() {
+  return window.location.search.slice(1);
+}
 type Props = {
   schema: InsuranceSchema;
   products: ComparableProduct[];
@@ -50,7 +64,11 @@ export function ComparisonExperience({
 }: Props) {
   const search = useSearchParams();
   const pathname = usePathname();
-  const queryKey = search?.toString() ?? "";
+  const queryKey = useSyncExternalStore(
+    subscribeQuery,
+    browserQuery,
+    () => search?.toString() ?? "",
+  );
   const state = useMemo(
     () => (search ? readComparisonState(new URLSearchParams(queryKey), schema, products) : initial),
     [queryKey, schema, products, search, initial],
@@ -115,6 +133,7 @@ export function ComparisonExperience({
     else params.delete(key);
     const next = params.toString();
     window.history.pushState(null, "", `${pathname}${next ? `?${next}` : ""}`);
+    window.dispatchEvent(new Event(queryChange));
   }
   function togglePriority(key: string) {
     const current = readComparisonState(
