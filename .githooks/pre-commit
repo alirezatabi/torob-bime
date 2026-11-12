@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+// Only check files selected for the index; do not rewrite a partially staged file.
+const { spawnSync } = require("node:child_process");
+const staged = spawnSync("git", ["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR"], {
+  encoding: "utf8",
+});
+if (staged.status !== 0) process.exit(staged.status ?? 1);
+const paths = staged.stdout.split("\0").filter(Boolean);
+if (!paths.length) process.exit(0);
+const node = process.execPath;
+const run = (bin, args) => {
+  const result = spawnSync(node, [bin, ...args], { stdio: "inherit" });
+  if (result.status !== 0) process.exit(result.status ?? 1);
+};
+run("node_modules/prettier/bin/prettier.cjs", ["--check", "--ignore-unknown", ...paths]);
+const code = paths.filter(
+  (file) => /\.(?:tsx?|jsx?)$/.test(file) && !file.endsWith("next-env.d.ts"),
+);
+if (code.length) run("node_modules/eslint/bin/eslint.js", ["--max-warnings=0", ...code]);

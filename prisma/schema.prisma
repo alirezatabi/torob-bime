@@ -1,0 +1,68 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model InsuranceType {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  nameFa   String
+  schema   Json
+  products Product[]
+}
+
+model Insurer {
+  id           String    @id @default(cuid())
+  slug         String    @unique
+  nameFa       String
+  trustSignals Json?
+  products     Product[]
+}
+
+model Product {
+  id             String          @id @default(cuid())
+  slug           String          @unique
+  insurerId      String
+  typeId         String
+  nameFa         String
+  sourceText     String          @db.Text
+  sourceUrl      String?
+  isSampleData   Boolean         @default(true)
+  priceModel     Json?
+  insurer        Insurer         @relation(fields: [insurerId], references: [id])
+  type           InsuranceType   @relation(fields: [typeId], references: [id])
+  coverages      CoverageValue[]
+  extractionRuns ExtractionRun[]
+
+  @@index([typeId])
+}
+
+model CoverageValue {
+  id         String  @id @default(cuid())
+  productId  String
+  fieldKey   String
+  value      Json
+  evidence   String? @db.Text
+  confidence Float
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, fieldKey])
+}
+
+model ExtractionRun {
+  id        String   @id @default(cuid())
+  productId String
+  model     String
+  createdAt DateTime @default(now())
+  rawOutput Json
+  valid     Boolean
+  errors    Json?
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+}

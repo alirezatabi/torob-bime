@@ -1,0 +1,11 @@
+node_modules
+.next
+package-lock.json
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+next-env.d.ts
+docs/original-agent-prompt.md
+docs/EVAL_REPORT*.md
+fixtures/eval-summary.json

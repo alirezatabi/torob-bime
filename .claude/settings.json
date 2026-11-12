@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "node scripts/agent-edit-hook.mjs", "timeout": 30 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/agent-edit-hook.mjs --stop",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

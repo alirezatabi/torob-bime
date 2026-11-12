@@ -1,0 +1,10 @@
+{
+  "slug": "pet-sample",
+  "typeSlug": "pet",
+  "insurerSlug": "sample",
+  "insurerNameFa": "شرکت نمونه (فرضی)",
+  "nameFa": "طرح نمونه",
+  "sourceText": "",
+  "sourceUrl": null,
+  "isSampleData": true
+}

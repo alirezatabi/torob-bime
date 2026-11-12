@@ -1,0 +1,607 @@
+"use client";
+import { useMemo, useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { z } from "zod";
+import { Check, Copy, Plus, ShieldAlert, X } from "lucide-react";
+import { faNumber, formatMoney, formatValue } from "@/lib/domain/format";
+import {
+  evidenceBackedValue,
+  getCoverage,
+  isNonCoverage,
+  isScoredField,
+  limitationFacts,
+  rankProducts,
+} from "@/lib/domain/ranking";
+import { readComparisonState } from "@/lib/domain/comparison-query";
+import { toLatinDigits } from "@/lib/domain/text";
+import type {
+  ComparableProduct,
+  CoverageField,
+  CoverageValue,
+  InsuranceSchema,
+} from "@/lib/schemas/contracts";
+import { TypeIcon } from "./type-icon";
+import { SourceDialog, type SourceDialogData } from "./source-dialog";
+import { PlanCard } from "./plan-card";
+import { ComparisonTable } from "./comparison-table";
+import { EvidenceButton, type SourceHandler } from "./evidence-button";
+import { Badge, Chip, Disclosure, Toast } from "./ui/surfaces";
+import { Button, IconButton } from "./ui/button";
+import { FieldError, FieldHint, FieldLabel, TextInput } from "./ui/field";
+
+const explanationResponse = z.object({
+  mode: z.enum(["ai", "rules"]),
+  items: z.array(
+    z.object({
+      productSlug: z.string(),
+      positiveFieldKey: z.string().nullable(),
+      limitationFieldKey: z.string().nullable(),
+    }),
+  ),
+});
+// Next's router can batch consecutive popstate transitions. Subscribe to the
+// actual browser URL as well, so Back/Forward never leaves the controls stale.
+const queryChange = "torob-comparison-query-change";
+function subscribeQuery(onChange: () => void) {
+  window.addEventListener("popstate", onChange);
+  window.addEventListener(queryChange, onChange);
+  return () => {
+    window.removeEventListener("popstate", onChange);
+    window.removeEventListener(queryChange, onChange);
+  };
+}
+function browserQuery() {
+  return window.location.search.slice(1);
+}
+type Props = {
+  schema: InsuranceSchema;
+  products: ComparableProduct[];
+  catalogueNotice: ReactNode;
+  initialQuery: string;
+  hasAi: boolean;
+};
+export function ComparisonExperience({
+  schema,
+  products,
+  catalogueNotice,
+  initialQuery,
+  hasAi,
+}: Props) {
+  const pathname = usePathname();
+  // The server snapshot must be the query that produced this HTML, not the
+  // router's potentially stale intermediate state during rapid Back/Forward.
+  const queryKey = useSyncExternalStore(subscribeQuery, browserQuery, () => initialQuery);
+  const state = useMemo(
+    () => readComparisonState(new URLSearchParams(queryKey), schema, products),
+    [queryKey, schema, products],
+  );
+  const { priorities, constraints, selected, budget } = state;
+  const [hideIdentical, setHideIdentical] = useState(false);
+  const [source, setSource] = useState<SourceDialogData | null>(null);
+  const [notice, setNotice] = useState("");
+  const [budgetError, setBudgetError] = useState("");
+  const [aiSelection, setAiSelection] = useState<{
+    key: string;
+    result: z.infer<typeof explanationResponse>;
+  } | null>(null);
+  const priorityKey = [...priorities].sort().join(",");
+  const explanationKey = `${schema.slug}:${priorityKey}`;
+  const currentSelection = aiSelection?.key === explanationKey ? aiSelection.result : null;
+  const ranked = useMemo(
+    () => rankProducts(products, schema, priorities, constraints),
+    [products, schema, priorities, constraints],
+  );
+  const compared = selected.flatMap((slug) => {
+    const item = ranked.find(({ product }) => product.slug === slug);
+    return item ? [item] : [];
+  });
+  const comparedByRank = ranked.filter(({ product }) => selected.includes(product.slug));
+  const rows = schema.fields.map((field) => ({
+    field,
+    differs:
+      new Set(
+        compared.map(({ product }) => JSON.stringify(evidenceBackedValue(product, field.key))),
+      ).size > 1,
+  }));
+
+  useEffect(() => {
+    if (!hasAi) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: schema.slug,
+          priorities: priorityKey ? priorityKey.split(",") : [],
+        }),
+        signal: controller.signal,
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body: unknown) => {
+          const parsed = explanationResponse.safeParse(body);
+          if (parsed.success && !controller.signal.aborted)
+            setAiSelection({ key: explanationKey, result: parsed.data });
+        })
+        .catch(() => {
+          /* Deterministic facts remain visible. */
+        });
+    }, 500);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [hasAi, schema.slug, priorityKey, explanationKey]);
+
+  // Native history integrates with Next's router without a server round-trip and preserves Back.
+  function changeQuery(key: "priorities" | "required" | "compare" | "budget", value: string) {
+    const params = new URLSearchParams(window.location.search);
+    if (value) params.set(key, value);
+    else params.delete(key);
+    const next = params.toString();
+    window.history.pushState(
+      null,
+      "",
+      `${pathname}${next ? `?${next}` : ""}${window.location.hash}`,
+    );
+    window.dispatchEvent(new Event(queryChange));
+  }
+  function togglePriority(key: string) {
+    const current = readComparisonState(
+      new URLSearchParams(window.location.search),
+      schema,
+      products,
+    ).priorities;
+    setAiSelection(null);
+    changeQuery(
+      "priorities",
+      (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]).join(
+        ",",
+      ),
+    );
+  }
+  function removeConstraint(key: string) {
+    const current = readComparisonState(
+      new URLSearchParams(window.location.search),
+      schema,
+      products,
+    ).constraints;
+    changeQuery(
+      "required",
+      current
+        .filter((item) => item.fieldKey !== key)
+        .map((item) => item.fieldKey)
+        .join(","),
+    );
+  }
+  function toggleProduct(slug: string) {
+    const current = readComparisonState(
+      new URLSearchParams(window.location.search),
+      schema,
+      products,
+    ).selected;
+    const next = current.includes(slug)
+      ? current.length > 2
+        ? current.filter((item) => item !== slug)
+        : current
+      : current.length < 6
+        ? [...current, slug]
+        : current;
+    if (next !== current) changeQuery("compare", next.join(","));
+  }
+  const showSource: SourceHandler = (
+    product: ComparableProduct,
+    field: CoverageField,
+    coverage?: CoverageValue,
+  ) => {
+    if (!coverage?.evidence || coverage.value === null) return;
+    setSource({
+      title: field.labelFa,
+      productName: `${product.nameFa} · ${product.insurerNameFa}`,
+      evidence: coverage.evidence,
+      context: product.evidenceContext?.[field.key],
+      value: formatValue(field, coverage.value),
+      confidence: coverage.confidence,
+      provenance: product.provenance,
+      sourceUrl: product.sourceUrl,
+      isSampleData: product.isSampleData,
+    });
+  };
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setNotice("پیوند مقایسه کپی شد.");
+    } catch {
+      setNotice("کپی خودکار ممکن نبود؛ نشانی مرورگر را کپی کنید.");
+    }
+  }
+  return (
+    <>
+      <div className="relative z-20 -mx-5 border-y border-border bg-surface-raised/95 px-5 py-3 shadow-card backdrop-blur sm:-mx-8 sm:px-8 md:sticky md:top-0">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <TypeIcon type={schema.icon} />
+            <div>
+              <p className="text-xs font-bold text-brand-strong">مقایسه پوشش‌ها</p>
+              <h1 className="text-lg font-extrabold sm:text-xl">{schema.nameFa}</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge tone={products.every((product) => product.isSampleData) ? "warning" : "neutral"}>
+              {faNumber(products.length)} طرح
+              {products.every((product) => product.isSampleData) ? " نمونه" : ""}
+            </Badge>
+            <Button variant="secondary" onClick={() => void copyLink()} className="text-xs">
+              <Copy size={16} aria-hidden="true" /> کپی پیوند مقایسه
+            </Button>
+          </div>
+        </div>
+        {notice && <Toast>{notice}</Toast>}
+        {priorities.length > 0 && (
+          <div className="scrollbar-thin mt-2 hidden items-center gap-2 overflow-x-auto pb-1 text-xs text-text-muted md:flex">
+            <span className="shrink-0">اولویت شما:</span>
+            {priorities.map((key) => {
+              const field = schema.fields.find((item) => item.key === key);
+              return field ? (
+                <button
+                  key={key}
+                  onClick={() => togglePriority(key)}
+                  aria-label={`حذف اولویت ${field.labelFa}`}
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-brand-soft px-2 text-xs font-bold text-brand-strong"
+                >
+                  {field.labelFa}
+                  <X size={14} aria-hidden="true" />
+                </button>
+              ) : null;
+            })}
+          </div>
+        )}
+      </div>
+      {catalogueNotice}
+      <nav
+        aria-label="دسترسی سریع به بخش‌های مقایسه"
+        className="scrollbar-thin mt-5 flex items-center gap-2 overflow-x-auto pb-1"
+      >
+        <span className="hidden shrink-0 text-xs font-bold text-text-muted sm:inline">
+          در این صفحه:
+        </span>
+        {[
+          { href: "#plans", label: "طرح‌ها" },
+          { href: "#non-coverage", label: "بدون پوشش" },
+          { href: "#comparison-details", label: "جدول و منبع" },
+        ].map(({ href, label }) => (
+          <a
+            key={href}
+            href={href}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-border bg-surface-raised px-4 text-xs font-bold text-text-muted transition hover:border-brand hover:text-brand-strong"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+      <section
+        aria-label="اولویت‌های مقایسه"
+        className="mt-5 rounded-3xl border border-border bg-surface-raised p-5 shadow-card"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-extrabold">چه پوشش‌هایی برای شما مهم‌تر است؟</h2>
+            <p className="mt-1 text-sm leading-7 text-text-muted">
+              همه معیارها در امتیاز لحاظ می‌شوند؛ با انتخاب هر اولویت، وزن آن ۳ برابر می‌شود.
+            </p>
+          </div>
+          <Disclosure title="روش امتیازدهی">
+            امتیاز پوشش نسبت به طرح‌های همین صفحه محاسبه می‌شود. مقدار نامشخص صفر می‌گیرد؛ شرط‌های
+            تأییدشده پیش از امتیاز در ترتیب نقش دارند. حق‌بیمه نمونه در امتیاز پوشش و هیچ اعتبارسنجی
+            شرکت لحاظ نمی‌شود. امتیاز توصیه خرید نیست.
+          </Disclosure>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {schema.fields.filter(isScoredField).map((field) => (
+            <Chip
+              key={field.key}
+              active={priorities.includes(field.key)}
+              onClick={() => togglePriority(field.key)}
+            >
+              {priorities.includes(field.key) ? (
+                <Check size={15} aria-hidden="true" />
+              ) : (
+                <Plus size={15} aria-hidden="true" />
+              )}
+              {field.labelFa}
+            </Chip>
+          ))}
+        </div>
+        {constraints.length > 0 && (
+          <div
+            role="region"
+            aria-label="شرط‌های الزامی پوشش"
+            className="mt-4 rounded-2xl bg-warning-soft p-4"
+          >
+            <p className="text-xs font-bold text-warning">شرط الزامی پوشش</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {constraints.map(({ fieldKey }) => {
+                const field = schema.fields.find((item) => item.key === fieldKey);
+                return field ? (
+                  <button
+                    key={fieldKey}
+                    aria-label={`حذف شرط ${field.labelFa}`}
+                    onClick={() => removeConstraint(fieldKey)}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface-raised px-3 text-xs font-bold text-warning"
+                  >
+                    {field.labelFa}
+                    <X size={15} aria-hidden="true" />
+                  </button>
+                ) : null;
+              })}
+            </div>
+            <p className="mt-2 text-xs leading-6 text-warning">
+              ابتدا تعداد شرط‌های تأییدشده سنجیده می‌شود؛ نامشخص به معنی نبود پوشش نیست.
+            </p>
+          </div>
+        )}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const raw = String(new FormData(form).get("budget") ?? "");
+            const normalized = toLatinDigits(raw).replace(/[٬,\s]/g, "");
+            if (!normalized) {
+              setBudgetError("");
+              changeQuery("budget", "");
+              return;
+            }
+            const amount = Number(normalized);
+            if (
+              !/^\d{1,13}$/.test(normalized) ||
+              !Number.isSafeInteger(amount) ||
+              amount <= 0 ||
+              amount > 1_000_000_000_000
+            ) {
+              setBudgetError("عدد بزرگ‌تر از صفر و حداکثر هزار میلیارد تومان وارد کنید.");
+              form.querySelector<HTMLInputElement>("[name=budget]")?.focus();
+              return;
+            }
+            setBudgetError("");
+            changeQuery("budget", String(amount));
+          }}
+          className="mt-5 border-t border-border pt-5"
+        >
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[190px] flex-1">
+              <FieldLabel htmlFor="budget-input" optional>
+                بودجه سالانه برای مقایسه نمونه
+              </FieldLabel>
+              <div className="mt-2">
+                <TextInput
+                  key={budget ?? "empty"}
+                  id="budget-input"
+                  name="budget"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  dir="ltr"
+                  defaultValue={budget ?? ""}
+                  maxLength={24}
+                  placeholder="مثلاً ۱۰٬۰۰۰٬۰۰۰"
+                  suffix="تومان"
+                  aria-invalid={budgetError ? true : undefined}
+                  aria-describedby={`budget-hint${budgetError ? " budget-error" : ""}`}
+                  onChange={() => setBudgetError("")}
+                  className="text-end"
+                />
+              </div>
+            </div>
+            <Button variant="secondary" type="submit" className="min-h-12">
+              اعمال بودجه
+            </Button>
+            {budget !== null && (
+              <Button
+                variant="ghost"
+                className="min-h-12"
+                onClick={() => {
+                  setBudgetError("");
+                  changeQuery("budget", "");
+                }}
+              >
+                حذف بودجه
+              </Button>
+            )}
+          </div>
+          <div className="mt-2">
+            <FieldHint id="budget-hint">
+              {budget !== null
+                ? `بودجه ${formatMoney(budget)} با حق‌بیمه‌های سالانه ساختگی سنجیده می‌شود. `
+                : "ارقام فارسی یا انگلیسی را وارد کنید. "}
+              این مبلغ در پیوند قابل اشتراک قرار می‌گیرد و هیچ قیمت واقعی نیست.
+            </FieldHint>
+          </div>
+          {budgetError && (
+            <div className="mt-2">
+              <FieldError id="budget-error">{budgetError}</FieldError>
+            </div>
+          )}
+        </form>
+      </section>
+      <section
+        id="plans"
+        aria-labelledby="ranking-title"
+        className="mt-12 scroll-mt-6 md:scroll-mt-36"
+      >
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-brand-strong">یک نگاه کلی</p>
+            <h2 id="ranking-title" className="mt-1 text-2xl font-extrabold">
+              طرح‌ها به ترتیب تناسب پوشش
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-text-muted">
+              در صورت وجود، معیار مؤثر و مورد بدون پوشش هر طرح را با منبع ببینید. امتیاز، توصیه خرید
+              یا اعتبار شرکت نیست.
+            </p>
+          </div>
+        </div>
+        <div className="scrollbar-thin -mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-4 sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0">
+          {ranked.map((item, index) => {
+            const chosen = currentSelection?.items.find(
+              (row) => row.productSlug === item.product.slug,
+            );
+            return (
+              <PlanCard
+                key={item.product.slug}
+                ranked={item}
+                products={products}
+                index={index}
+                schema={schema}
+                priorities={priorities}
+                selected={selected.includes(item.product.slug)}
+                selectionCount={selected.length}
+                budget={budget}
+                onToggle={toggleProduct}
+                onSource={showSource}
+                suggestion={
+                  chosen && currentSelection
+                    ? { ...chosen, mode: currentSelection.mode }
+                    : undefined
+                }
+              />
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs leading-7 text-text-muted">
+          <span className="md:hidden">برای دیدن طرح‌های دیگر، کارت‌ها را به طرفین بکشید. </span>
+          برای جدول، حداقل ۲ و حداکثر ۶ طرح انتخاب کنید.
+        </p>
+      </section>
+      <section
+        id="non-coverage"
+        aria-labelledby="limitations-title"
+        className="mt-12 scroll-mt-6 rounded-3xl border border-border bg-danger-soft p-5 sm:p-6 md:scroll-mt-36"
+      >
+        <div className="flex items-start gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-surface-raised text-danger">
+            <ShieldAlert size={22} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-xs font-bold text-danger">پیش از انتخاب، این بخش را بررسی کنید</p>
+            <h2 id="limitations-title" className="mt-1 text-xl font-extrabold">
+              چه چیزهایی تحت پوشش نیست؟
+            </h2>
+            <p className="mt-2 text-sm leading-7 text-text-muted">
+              خلاصه‌ای از موارد ثبت‌شده در طرح‌های انتخابی، به ترتیب رتبه؛ ممکن است همه شرایط را
+              شامل نشود.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {comparedByRank.map(({ product }) => {
+            const nonCoverage = limitationFacts(product, schema, priorities)
+              .filter(isNonCoverage)
+              .slice(0, 2);
+            return (
+              <article
+                key={product.slug}
+                className="rounded-2xl border border-border bg-surface-raised p-4"
+              >
+                <h3 className="text-base font-extrabold">{product.nameFa}</h3>
+                <p className="text-xs text-text-muted">{product.insurerNameFa}</p>
+                {nonCoverage.length ? (
+                  nonCoverage.map(({ field, coverage }) => (
+                    <div key={field.key} className="mt-2 flex items-center gap-2 text-sm leading-7">
+                      <span className="flex-1">
+                        {field.isExclusion
+                          ? String(coverage.value)
+                          : `${field.labelFa}: ${formatValue(field, coverage.value)}`}
+                      </span>
+                      <EvidenceButton
+                        product={product}
+                        field={field}
+                        coverage={coverage}
+                        onSource={showSource}
+                        compact
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <p className="mt-2 text-sm leading-7 text-text-muted">
+                    مورد صریحی از نبود پوشش ثبت نشده؛ این به معنی نبود محدودیت نیست.
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+      <ComparisonTable
+        schema={schema}
+        compared={compared}
+        rows={rows}
+        hideIdentical={hideIdentical}
+        setHideIdentical={setHideIdentical}
+        onToggle={toggleProduct}
+        onSource={showSource}
+      />
+      <section
+        aria-labelledby="value-title"
+        className="mt-12 rounded-3xl border border-border bg-surface-raised p-5 shadow-card sm:p-6"
+      >
+        <h2 id="value-title" className="text-xl font-extrabold">
+          پوشش در برابر حق‌بیمه نمونه
+        </h2>
+        <p className="mt-2 text-sm leading-7 text-text-muted">
+          برای تمرین مقایسه، امتیاز پوشش و مبلغ ساختگی سالانه را کنار هم ببینید؛ این اعداد قیمت
+          واقعی یا پیشنهاد خرید نیستند.
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {ranked.map(({ product, score }) => {
+            const field = schema.fields.find((item) => item.isPremium);
+            const coverage = field ? getCoverage(product, field.key) : undefined;
+            return (
+              <div
+                key={product.slug}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-muted p-3 text-xs"
+              >
+                <strong>
+                  {product.nameFa} · {product.insurerNameFa}
+                </strong>
+                <span>
+                  امتیاز {faNumber(score)} از ۱۰۰ /{" "}
+                  {field
+                    ? formatValue(field, coverage?.evidence ? coverage.value : null)
+                    : "نامشخص"}{" "}
+                  نمونه
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface-raised p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-float md:hidden">
+        <div className="mx-auto flex max-w-[1200px] items-center gap-2">
+          <div className="scrollbar-thin flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {compared.map(({ product }) => (
+              <span
+                key={product.slug}
+                className="inline-flex shrink-0 items-center rounded-xl bg-surface-muted ps-2 text-xs font-bold"
+              >
+                {product.nameFa}
+                <IconButton
+                  label={`حذف ${product.nameFa}، ${product.insurerNameFa} از سینی`}
+                  disabled={selected.length <= 2}
+                  onClick={() => toggleProduct(product.slug)}
+                >
+                  <X size={15} aria-hidden="true" />
+                </IconButton>
+              </span>
+            ))}
+          </div>
+          <a
+            href="#comparison-details"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-brand px-4 py-2 text-xs font-bold text-on-brand transition hover:bg-brand-strong"
+          >
+            مقایسه ({faNumber(selected.length)})
+          </a>
+        </div>
+      </div>
+      {source && <SourceDialog source={source} onClose={() => setSource(null)} />}
+    </>
+  );
+}
