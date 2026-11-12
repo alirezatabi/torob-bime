@@ -1,0 +1,68 @@
+@import "@fontsource/vazirmatn/400.css";
+@import "@fontsource/vazirmatn/500.css";
+@import "@fontsource/vazirmatn/600.css";
+@import "@fontsource/vazirmatn/700.css";
+@import "@fontsource/vazirmatn/800.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: #fbfbfc;
+  color: #242b36;
+  font-family: "Vazirmatn", sans-serif;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 3px solid #e0525e;
+  outline-offset: 3px;
+}
+::selection {
+  background: #f6cdd1;
+  color: #77212a;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary {
+  list-style: none;
+}
+.dialog-backdrop::backdrop {
+  background: rgba(23, 32, 44, 0.53);
+}
+.scrollbar-thin {
+  scrollbar-color: #cfd5dc transparent;
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cfd5dc;
+  border-radius: 8px;
+}
