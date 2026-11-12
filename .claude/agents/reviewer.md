@@ -1,7 +1,8 @@
 ---
 name: reviewer
-description: Read-only review of correctness, type safety, honesty, RTL and security.
+description: Read-only milestone review against docs/redesign-plan.md, prompt and CLAUDE.md; report blocking honesty, correctness, RTL and accessibility findings.
 tools: Read, Glob, Grep
+model: sonnet
 ---
 
-Review the diff against PLAN.md and CLAUDE.md. Report prioritized, actionable findings with file paths; pay particular attention to evidence, sample labels, unsourced trust and prices, client secrets, RTL and accessibility. Do not edit files.
+Read-only milestone review against docs/redesign-plan.md, prompt and CLAUDE.md; report blocking honesty, correctness, RTL and accessibility findings. Return a short summary of files changed, checks run and unresolved risks; never dump files or claim unrun tests. Follow the frozen contracts and honesty rules in `docs/redesign-plan.md` and `CLAUDE.md`.

@@ -12,9 +12,9 @@ Start in **plan mode**. Read `CLAUDE.md`, `PLAN.md`, `README.md` first, then thi
 
 ## 1. Context (why this exists)
 
-This is a job-application demo for the **AI Product Engineer** role at **Torob (ترب)**, an Iranian shopping search engine. Their challenge: *"Build Torob for a new market"* and submit a **≤5-minute demo video** plus a project link. Reviewers judge: full-stack engineering, **product judgment**, **UX taste**, and **practical use of AI**.
+This is a job-application demo for the **AI Product Engineer** role at **Torob (ترب)**, an Iranian shopping search engine. Their challenge: _"Build Torob for a new market"_ and submit a **≤5-minute demo video** plus a project link. Reviewers judge: full-stack engineering, **product judgment**, **UX taste**, and **practical use of AI**.
 
-Torob is a search engine, not a seller. Its core value: (1) turn messy offers into one canonical product, (2) rank offers by price + seller trust + location, (3) help the user decide. **Torob Bime** applies this to insurance: policies are long, messy documents, so AI turns them into a normalized, comparable, *source-grounded* structure, ranks by the user's intent, and explains what is **not** covered.
+Torob is a search engine, not a seller. Its core value: (1) turn messy offers into one canonical product, (2) rank offers by price + seller trust + location, (3) help the user decide. **Torob Bime** applies this to insurance: policies are long, messy documents, so AI turns them into a normalized, comparable, _source-grounded_ structure, ranks by the user's intent, and explains what is **not** covered.
 
 The demo author is **Alireza Tabibzadeh (علیرضا طبیب‌زاده)**, a full-stack developer. Add tasteful author attribution (see D-14).
 
@@ -35,7 +35,7 @@ If a fix would violate one of these, stop and state the conflict in the plan.
 
 ## 3. Review method and limits
 
-The findings below come from reading the code, not running it. Before fixing each item, **reproduce or confirm it** (read the file, write a failing test, or take a screenshot). If an item turns out to be wrong, say so in the final report instead of "fixing" it. Where a finding says *(verify)*, confirming it is your first step.
+The findings below come from reading the code, not running it. Before fixing each item, **reproduce or confirm it** (read the file, write a failing test, or take a screenshot). If an item turns out to be wrong, say so in the final report instead of "fixing" it. Where a finding says _(verify)_, confirming it is your first step.
 
 ---
 
@@ -46,6 +46,7 @@ Each item: **ID: problem, where, fix, acceptance**. Implement P0 first, then P1,
 ### P0: credibility, correctness, deployment-breaking
 
 **B-01: The AI story is never actually exercised in the demo.**
+
 - Where: `fixtures/products.json`, `lib/ai/offline-extraction.ts`, `scripts/eval.ts`, `EVAL_REPORT.md`.
 - Problem: every sample policy is written as rigid `label: value.` lines (e.g. `تصادف و برخورد: پوشش دارد.`), and the "offline parser" reads exactly that format. So the demo (and the 95.5% eval) measures a regex parser on text authored for it. The central claim (LLM turns messy policy text into grounded structure) is never shown, and the live Anthropic path is unverified.
 - Fix:
@@ -56,29 +57,34 @@ Each item: **ID: problem, where, fix, acceptance**. Implement P0 first, then P1,
 - Acceptance: samples are prose; snapshot loader + generator exist with tests; UI shows the correct provenance label per mode; README/DEMO updated truthfully.
 
 **B-02: Evidence grounding is brittle (will reject many correct live results and accept some wrong ones).** `lib/ai/grounding.ts`
+
 - `sourceText.includes(row.evidence)` is an exact match. LLM output commonly differs by whitespace, ZWNJ (U+200C), Arabic vs Persian ی/ک, or digit script → valid quotes rejected, so most live values become `null`. Fix: match on a **normalized form** (collapse whitespace, unify ی/ک/digits/ZWNJ) with an index map back to the original text; store the **exact original span** as `evidence` so the UI quote stays verbatim.
 - Number check uses `parsePersianNumber(row.evidence)` = the **first** number in the quote; unit check also uses the first number. A quote like «ماده ۵: سقف تعهد ۱۰ میلیون تومان» is rejected (5 ≠ value). Fix: find the numeric token that is adjacent to a unit/magnitude word or the field label; accept if the claimed value equals any number-with-unit in the quote and unit matches.
-- `hasContext` accepts any keyword hit, and keywords overlap across fields (`سرقت` is a keyword of both `total_theft` and `partial_theft`; `سقف` is generic), so the model can ground `partial_theft` with the `total_theft` line. Fix: require the field's `labelFa` or a field-specific anchor; reject evidence that matches a *different* field's label better; add tests for the theft case.
+- `hasContext` accepts any keyword hit, and keywords overlap across fields (`سرقت` is a keyword of both `total_theft` and `partial_theft`; `سقف` is generic), so the model can ground `partial_theft` with the `total_theft` line. Fix: require the field's `labelFa` or a field-specific anchor; reject evidence that matches a _different_ field's label better; add tests for the theft case.
 - Boolean verification: bare `ندارد` is in the `negative` regex, so «پوشش دارد، فرانشیز ندارد» is rejected for `true`. Fix with clause-level polarity (split evidence on punctuation/conjunctions, evaluate the clause containing the field label).
 - Add tests with realistic phrasings (ZWNJ variants, Arabic ی/ک, extra whitespace, multi-number quotes, double negatives).
 - Acceptance: new tests pass; the old tests pass; grounding rate on the new messy eval set is reported honestly.
 
 **B-03: Production file-path bugs (will break on serverless/standalone builds).**
+
 - `app/api/eval-report/route.ts` reads `"EVAL_REPORT.md"` and `app/evaluation/page.tsx` reads `"fixtures/eval-summary.json"` via cwd-relative `readFile`; `scripts/eval.ts` writes them into the repo.
 - Fix: import the JSON statically (`resolveJsonModule` is already on) or generate under `public/`/build step; serve the markdown from an imported string or a static asset. Remove runtime `fs` reads from request handlers. Verify with `next build && next start` from a different cwd.
 - Acceptance: `/evaluation` and `/api/eval-report` work from a clean production build.
 
 **B-04: Failures are swallowed silently.**
+
 - `lib/data/catalog.ts` `catch {}` falls back to sample data with no log (a broken DB looks identical to "not configured"); `lib/ai/intent.ts` and `lib/ai/explanations.ts` swallow model errors; `app/error.tsx` ignores the error; no `global-error.tsx`.
 - Fix: add a tiny server logger (`lib/server/log.ts`) that logs error **name/code/message only**, never request bodies, user text, keys or connection strings. Log in every catch above, record `reason` in the catalogue (`fallbackReason: "db-unreachable" | "empty" | "invalid-schema"`) and surface a short human reason in the existing fallback banner. Make `error.tsx` log with `digest`, add `global-error.tsx`.
 - Acceptance: unit test that a failing DB produces a logged reason and `mode: "fallback"`.
 
 **B-05: No abuse protection on the LLM routes; wasteful client calls.**
+
 - `/api/intent` and `/api/explain` call Anthropic with no rate limit, no content-type/origin check; `/api/explain` is POSTed from `components/comparison-experience.tsx` on **every page view and every priority toggle** (no debounce, no cache) and re-sends the whole catalogue; `/api/intent` returns **400 for every error**, masking real 500s.
 - Fix: (a) per-IP token-bucket rate limit helper (in-memory is fine for the demo, abstracted so Redis/Upstash can replace it); (b) require `Content-Type: application/json` and same-origin (`Origin`/`Sec-Fetch-Site`); (c) cache explanation selection by hash(slug + sorted priorities + catalogue version) with a TTL; (d) debounce the client call (≥400 ms) and cancel in-flight requests; better: compute explanation keys in a server component/action so there is no client round trip; (e) correct status codes (400 validation, 413, 429 with `Retry-After`, 500 internal).
 - Acceptance: tests for 429, wrong content-type, cache hit; toggling 5 priorities quickly produces ≤1 model call.
 
 **B-06: Prisma generate hack will break real installs/CI.** `scripts/generate-client.mjs`, `package.json` `postinstall`/`build`.
+
 - It sets `PRISMA_SCHEMA_ENGINE_BINARY` and `PRISMA_QUERY_ENGINE_LIBRARY` to the **Node binary** (a workaround for a sandbox without network), and runs on every `postinstall` and `build`.
 - Fix: replace with the standard `prisma generate`; remove the env overrides and the related `.env.example` commentary. Verify on a clean clone. Keep `engineType = "client"` + `@prisma/adapter-pg` only if still correct for the Prisma version you end up on.
 - Acceptance: `npm ci && npm run build` works from scratch on a networked machine; document in the report that you could not verify if no network.
@@ -102,6 +108,7 @@ Each item: **ID: problem, where, fix, acceptance**. Implement P0 first, then P1,
 **B-14: Missing production basics.** Add: `metadata` per page (`generateMetadata` for `compare/[slug]`), viewport + theme-color, Open Graph/Twitter cards, favicon/app icons (`app/icon.tsx` or files), `robots`/`sitemap`, and security headers in `next.config.ts` (CSP with nonce or strict-dynamic as feasible, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `frame-ancestors`). Remove the leftover `"*.e2b.app"` from `allowedDevOrigins`, and drop `-H 0.0.0.0` from default `dev`/`start` scripts (add `dev:lan` if wanted) so the dev server is not exposed on the LAN by default.
 
 **B-15: LLM integration hygiene.** `lib/ai/extraction.ts`, `intent.ts`, `explanations.ts`:
+
 - Sentinel string compare `feedback[0] === "No response"` to detect the first attempt; the retry prompt can say "Previous validation errors: Extraction provider error." Replace with typed attempt state.
 - Three near-identical Anthropic client constructions and tool-call plumbing: extract one `lib/ai/anthropic.ts` (client factory, timeout, tool-call helper, error mapping, logging).
 - Verify the current Anthropic SDK API/docs; use **prompt caching** for the schema/system prompt where supported, strict tool schemas where supported, and document recommended model env values in `.env.example` (verify current model IDs in Anthropic docs before writing them; one stronger model for extraction, a smaller/faster one for intent and explanation selection, each via its own env var, e.g. `LLM_MODEL` + optional `LLM_MODEL_FAST`).
@@ -120,27 +127,30 @@ Each item: **ID: problem, where, fix, acceptance**. Implement P0 first, then P1,
 **B-20: No CI, no deploy path.** Add GitHub Actions: install, typecheck, lint, format check, unit tests, build, Playwright (with a Postgres service), offline eval. Add a documented deployment path (Vercel + hosted Postgres such as Neon, or a Dockerfile) and make sure `/evaluation`, `/api/eval-report`, DB fallback and Prisma all work in that environment. You cannot deploy; write the steps and what the user must supply.
 
 **B-21: Stack is a generation behind.** `package.json`: Next 15.5, Tailwind 3.4, ESLint 8 with legacy `.eslintrc.json`, Prisma 6.19, React 19.1. **Do this as a separate, revertible phase after P0/P1 are green** (see §7). Verify each target in official docs first, then migrate:
+
 - **Next.js 16** (stable; Turbopack default, `middleware`→`proxy` rename if used, async request APIs, caching changes). Use the official upgrade guide/codemod. Evaluate Cache Components (`use cache`) for the catalogue (B-12) and the React Compiler; enable only if tests and build pass.
 - **Tailwind CSS v4** (CSS-first config via `@theme`), required for the token system in D-01.
 - **ESLint 9 flat config** (Next 16 removed `next lint`; the repo already calls `eslint` directly).
 - **Prisma**: check whether a newer major is stable and what changes (generator, driver adapters); migrate only if clean, otherwise stay and record why.
-If any step cannot be made green quickly, revert that step, keep the rest, and say so in the report.
+  If any step cannot be made green quickly, revert that step, keep the rest, and say so in the report.
 
 ---
 
 ## 5. Design and modernization spec
 
 ### 5.1 Diagnosis of the current UI (facts from the code)
+
 - ~250 raw hex colors (92 distinct) hard-coded in `className`s across `app/` and `components/`, while the tokens defined in `tailwind.config.ts` (`ink`, `muted`, `line`, `paper`, `brand`) are barely used. No semantic color system, no dark mode, no `prefers-reduced-motion` handling.
 - ~83 usages of 9–12 px text (39 at 10–11 px). Too small for Persian body text.
-- Negative letter-spacing (`tracking-tight`, `tracking-[-.03em]`) on Persian headings (`app/(home)/page.tsx`, `evaluation`, `roadmap`, `comparison-experience`, `logo`). Letter-spacing can break Arabic-script joining (*verify visually*). Remove it from all Persian text.
+- Negative letter-spacing (`tracking-tight`, `tracking-[-.03em]`) on Persian headings (`app/(home)/page.tsx`, `evaluation`, `roadmap`, `comparison-experience`, `logo`). Letter-spacing can break Arabic-script joining (_verify visually_). Remove it from all Persian text.
 - One 697-line client component (`comparison-experience.tsx`) holds the whole compare page; static content is shipped as client JS.
 - Insurers are shown as a single letter in a gray square; the hero is a static mock card; the comparison table is a plain grid; no motion; mixed informal/formal Persian voice («نیازت رو بگو» vs «بنویسید»).
 - The hero promises «انتخاب آگاهانه، نه فقط ارزان‌ترین» while there is no price anywhere; «یک مقایسه، هزار نکته» is hyperbole.
 - AI is invisible in the default (offline) mode, so the product's main differentiator is not visible on screen.
 
 ### 5.2 Design direction
-**Goal:** modern, calm, trustworthy, "looks like a funded product". Torob-adjacent (clean white surfaces, red-coral accent, rounded cards, dense but readable), with its own identity: *"every number has a source."* Mobile-first (most Iranian users are on phones).
+
+**Goal:** modern, calm, trustworthy, "looks like a funded product". Torob-adjacent (clean white surfaces, red-coral accent, rounded cards, dense but readable), with its own identity: _"every number has a source."_ Mobile-first (most Iranian users are on phones).
 
 **D-01: Design tokens (Tailwind v4 `@theme`).** Semantic tokens only: `surface`, `surface-muted`, `surface-raised`, `border`, `text`, `text-muted`, `brand` (+ `brand-soft`, `brand-strong`), `success`, `warning`, `danger`, `info` (each with soft/strong pairs), radius scale, shadow scale, spacing rhythm, z-index scale. Light and dark values. **Zero raw hex in components** (add a CI grep/ESLint rule). Check AA contrast for every text/background pair, including on tinted backgrounds.
 
@@ -149,12 +159,14 @@ If any step cannot be made green quickly, revert that step, keep the rest, and s
 **D-03: Component library (small, in `components/ui/`).** `Button`, `IconButton`, `Chip` (toggle/removable), `Badge`, `Card`, `Tooltip`, `Disclosure`, `Drawer` (bottom sheet on mobile, side drawer on desktop), `Tabs`, `Skeleton`, `Toast`, `ScoreRing`, `InsurerMark`. Use native elements/ARIA patterns (no heavy UI dependency unless justified in the plan; headless primitives like Radix are acceptable if you list the reason). Remove duplicated class strings.
 
 **D-04: Home page.**
+
 - Hero: one dominant AI search bar (large, rounded, focus ring in brand color), rotating example placeholders, example chips, privacy line (keep the Anthropic disclosure when AI is on).
 - **Intent confirmation step:** after submit, before navigating, show «فهمیدم:» chips for the detected type, priorities and requirements (editable/removable), then the user continues. This makes the AI visible and builds trust.
 - Category tiles with consistent icons, a "نمونه" badge and plan counts from the catalogue; a "how it works" strip using real product screenshots/mini-components, not generic icons; a trust strip: «هر عدد، یک منبع».
 - Replace the hero preview mock with a **live mini-comparison** (real data from the catalogue) that animates subtly on load.
 
 **D-05: Compare page (the core screen). Rebuild as server-rendered shell + small client islands.**
+
 - **Sticky summary bar:** type title, editable priority chips, sample-data/provenance badge, "کپی پیوند" button.
 - **Plan cards** (ranked): `InsurerMark` (deterministic monogram/color generated from the insurer slug, accessible name), plan name, `ScoreRing` with text label «۸۲٪ هم‌خوان با نیاز شما» (relative, not a purchase recommendation), top 3 facts with ✓/✗/– icons **plus text** (never color alone), a red-tinted "**چه چیزی پوشش داده نمی‌شود**" callout (max 2 items, expandable), "افزودن به مقایسه" and "منبع" actions.
 - **Compare tray:** sticky bottom bar on mobile showing selected plans (2–6) with remove buttons and a primary «مقایسه (n)» button.
@@ -183,8 +195,8 @@ If any step cannot be made green quickly, revert that step, keep the rest, and s
 
 ## 6. Decisions needed (use these defaults unless told otherwise; flag them in the report)
 
-- **D-P1: price axis.** Torob's core is price, and this demo has none. *Default:* add an **optional, clearly labeled fictional "حق‌بیمه نمونه"** per plan (a schema number field `sample_premium`, toman/month or year, stored in the fictional policy text and extracted/grounded like any other field), shown with a «نمونه، قیمت واقعی نیست» badge and documented in the README. Add a "value for coverage" view (coverage score vs sample premium) and make the budget input filter/flag plans using it. If you judge this conflicts with the honesty rules, do **not** add it; instead remove the budget input and say why.
-- **D-P2: AI provenance labels.** *Default:* three honest labels: «قانون‌محور (آفلاین)», «استخراج‌شده با مدل X در تاریخ Y (اسنپ‌شات)», «زنده با مدل X».
+- **D-P1: price axis.** Torob's core is price, and this demo has none. _Default:_ add an **optional, clearly labeled fictional "حق‌بیمه نمونه"** per plan (a schema number field `sample_premium`, toman/month or year, stored in the fictional policy text and extracted/grounded like any other field), shown with a «نمونه، قیمت واقعی نیست» badge and documented in the README. Add a "value for coverage" view (coverage score vs sample premium) and make the budget input filter/flag plans using it. If you judge this conflicts with the honesty rules, do **not** add it; instead remove the budget input and say why.
+- **D-P2: AI provenance labels.** _Default:_ three honest labels: «قانون‌محور (آفلاین)», «استخراج‌شده با مدل X در تاریخ Y (اسنپ‌شات)», «زنده با مدل X».
 - **D-P3: Insurance types.** Keep the three active types (car body, supplementary health, travel). Do not activate more unless time remains; if you do, run the full pipeline for each and keep the honesty labels.
 
 ---
@@ -196,6 +208,7 @@ Use the most capable agentic features available in this environment. If a featur
 **Plan mode first.** Deliver: dependency graph of the tasks, milestone list with acceptance criteria, the token/component API for D-01/D-03 (so parallel work shares one contract), and risks. Keep the task list live.
 
 **Update `.claude/agents/` (project subagents; least-privilege tools; `model` set deliberately; each returns a short summary, not file dumps).** Keep the existing roles and add:
+
 - `design-system-engineer`: owns tokens, Tailwind v4 migration, `components/ui/*`, dark mode, fonts.
 - `ui-builder`: owns pages/compare experience using the design system (no raw hex, no sub-13 px text).
 - `llm-pipeline-engineer`: owns B-01, B-02, B-15, snapshot mode, eval.
@@ -207,6 +220,7 @@ Use the most capable agentic features available in this environment. If a featur
 **Parallelization.** Freeze contracts first (token names, `ComparableProduct`, snapshot JSON schema, glossary/group fields in `contracts.ts`), then fan out in parallel: `design-system-engineer` (tokens/ui) ‖ `llm-pipeline-engineer` (B-01/B-02/B-15) ‖ `backend-hardener` (B-03–B-06/B-12–B-14). Then `ui-builder` composes D-04–D-06 on top of the finished design system. Use separate git worktrees/branches per stream where supported; merge only when typecheck + lint + tests are green. Run `reviewer`, `a11y-auditor` and `security-reviewer` before closing each milestone.
 
 **Automation and verification.**
+
 - Hooks per B-17 (fast per-file checks; heavy checks on Stop).
 - If available: **Playwright MCP/tooling** to take screenshots at 390 and 1280 px in light and dark for `/`, `/compare/car-body`, `/compare/supplementary-health`, `/compare/travel`, `/evaluation`, `/roadmap`, plus the evidence drawer and the "behind the scenes" view; **inspect them yourself and fix what you see** (RTL, truncation, contrast, spacing). Next.js DevTools MCP and a Postgres MCP if present.
 - Project memory: update `CLAUDE.md` (≤ 100 lines) with the new conventions (tokens only, min font size, voice guide, provenance labels, no runtime fs reads, logging rules).
@@ -228,6 +242,7 @@ Use the most capable agentic features available in this environment. If a featur
 **Global definition of done:** `npm run typecheck && npm run lint && npm run format:check && npm test && npm run build` pass; `npm run test:e2e` passes (including axe in light/dark); `npm run eval` passes in offline mode; zero raw hex in `app/` and `components/`; no text under 13 px; no runtime `fs` reads in request handlers; every AI-derived number/sentence is source-traceable; provenance labels are correct in every mode.
 
 **Final report format (concise, honest):**
+
 - Table: ID → status (fixed / confirmed-not-a-bug / deferred) → one-line evidence (commit, test, screenshot).
 - What changed in the design, with the screenshot list.
 - Metrics you actually measured (tests, Lighthouse, grounding/eval numbers per mode).

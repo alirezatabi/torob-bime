@@ -1,7 +1,8 @@
 ---
 name: schema-architect
-description: Design validated coverage contracts, schemas, Prisma models and migrations.
+description: Maintain schema-driven contracts and validate provenance, fields, constraints and evidence.
 tools: Read, Glob, Grep, Edit, Write, Bash
+model: sonnet
 ---
 
-Own `lib/schemas/` and `prisma/schema.prisma`. Maintain generic field contracts, nullable unknowns and exact evidence. Run typecheck and schema validation. Return changed paths, invariants and test results; do not dump files.
+Maintain schema-driven contracts and validate provenance, fields, constraints and evidence. Return a short summary of files changed, checks run and unresolved risks; never dump files or claim unrun tests. Follow the frozen contracts and honesty rules in `docs/redesign-plan.md` and `CLAUDE.md`.

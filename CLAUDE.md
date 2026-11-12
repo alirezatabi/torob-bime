@@ -1,12 +1,13 @@
 # Project memory — Torob Bime
 
-- Persian/RTL insurance comparison demo: Next.js App Router, strict TS, Tailwind, self-hosted Vazirmatn, Prisma/Postgres, Zod, Anthropic, Vitest, Playwright, npm. Windows users run native PostgreSQL; Docker is not required.
-- `npm run dev`, `npm run db:deploy`, `npm run db:seed`, `npm run ingest -- fixtures/products.json --offline`, `npm run eval`, `npm run eval -- --live`, `npm run verify`, `npm run test:e2e`.
-- Coverage schemas in `lib/schemas/` are the source of truth. Every component/pipeline iterates fields; do not add per-type branches. Validate DB schemas and all external inputs.
-- A non-null coverage must have verbatim evidence from the policy text and confidence 0–1. Ungrounded or unknown data is null, never inferred as covered. Show source on demand.
-- Every demo product/company is fictional and prominently labeled sample. Do not invent prices, ratings, trust statistics, policy facts or AI results. No purchase or live quote. Never store personal information or secrets in browser code.
-- Offline sample/rule mode and live AI/DB modes are different; never label offline metrics or explanations as LLM output. LLM model is configured only via `LLM_MODEL`.
-- Ranking is deterministic and relative, with clear weights and unknown-value treatment. Explicit unambiguous required boolean coverages are ranked by confirmed-condition count first, then score; unknown does not mean excluded. AI may select cited explanation facts but cannot invent values or requirements; render sentences from verified fields.
-- Use logical CSS properties, `lang=fa`, `dir=rtl`, Persian digits, keyboard-accessible controls, useful async/error/empty states, and responsive layouts.
-- Assumptions: 4 fictional plans per type; no real premiums or unsourced trust signals; no personal-data persistence. A checked-in sample catalogue provides a usable demo without DB/API credentials.
-- Definition of done: `npm run typecheck && npm run lint && npm test && npm run eval` pass; review honesty/accessibility, test the demo on mobile and desktop when tooling is available, and document any unavailable live verification.
+- Persian RTL insurance comparison demo; npm/Next, native Windows PostgreSQL (no Docker required), Prisma, Zod, Anthropic, Vitest and Playwright.
+- Product schemas in `lib/schemas/` are the source of truth. UI, extraction and ranking iterate schema fields rather than branch per insurance type. Validate external and DB data.
+- Every non-null value must have a verified, exact original source span, field-specific context, matching value/unit and confidence. Quote matching is not a proof of entailment. Unknown is not denied coverage.
+- Companies, plans, policy texts and sample annual premiums are fictional. Label them «نمونه، قیمت واقعی نیست». Never invent insurer ratings, trust scores, real prices, model outputs or purchasing recommendations.
+- Provenance is per product: «قانون‌محور (آفلاین)», «استخراج‌شده با مدل X در تاریخ Y (اسنپ‌شات)», or «زنده با مدل X». Models are selected only through `LLM_MODEL`/`LLM_MODEL_FAST`; never label rules as model output.
+- Never persist user text or secrets. API privacy detection is a guard, not exhaustive. Only bounded source excerpts go to comparison clients; full sample policy goes to the explicit extraction view.
+- Server logs contain fixed messages and safe error name/code only, never credentials, connection strings, provider messages, policy text or user input. Never read report files from a request handler at runtime.
+- Use semantic design tokens, 13px minimum captions and 15–16px body, no negative letter-spacing in Persian, logical CSS properties, `lang=fa`/`dir=rtl`, Persian digits, keyboard support, reduced motion and light/dark themes.
+- Voice: friendly respectful «شما», no slang/contractions, exaggerated claims or real-market implications. Interactive states and limitations must remain explicit.
+- Rank deterministically from verified coverage, with 3× priority weight and confirmed requirements before score. Sample annual premium is a separate, clearly fictional budget/value axis, never a real quote or coverage-score input.
+- Tasks and risks: `docs/redesign-plan.md`; developer and Windows setup: `README.md`/`docs/setup-windows.md`. Validate with `npm run typecheck`, `lint`, `format:check`, `test`, `eval`, `build`, and `test:e2e`.

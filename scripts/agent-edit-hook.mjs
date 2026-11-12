@@ -1,23 +1,33 @@
-// Compatible agent environments: run the same checks on Windows, macOS, and Linux.
+// Claude-compatible hooks; fixed argv and no shell interpolation on edited paths.
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-if (!existsSync(resolve(root, "node_modules"))) {
-  console.error("Install dependencies with npm install before verification.");
-  process.exit(2);
-}
-
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-for (const script of ["typecheck", "lint"]) {
-  const result = spawnSync(npm, ["run", script], {
+if (!existsSync(resolve(root, "node_modules"))) process.exit(0);
+const run = (bin, args) => {
+  const result = spawnSync(process.execPath, [resolve(root, bin), ...args], {
     cwd: root,
     stdio: "inherit",
-    // Windows executes npm through its .cmd shim; the arguments are fixed constants.
-    shell: process.platform === "win32",
   });
-  if (result.error) console.error(result.error.message);
-  if (result.status !== 0) process.exit(2);
+  if (result.status !== 0) process.exit(result.status ?? 2);
+};
+if (process.argv.includes("--stop")) {
+  run("node_modules/typescript/bin/tsc", ["--noEmit"]);
+  run("node_modules/vitest/vitest.mjs", ["run"]);
+} else {
+  let input;
+  try {
+    input = JSON.parse(readFileSync(0, "utf8"));
+  } catch {
+    process.exit(0);
+  }
+  const file = input?.tool_input?.file_path;
+  if (typeof file !== "string") process.exit(0);
+  const absolute = resolve(root, file),
+    rel = relative(root, absolute);
+  if (rel.startsWith("..") || !existsSync(absolute)) process.exit(0);
+  run("node_modules/prettier/bin/prettier.cjs", ["--write", "--ignore-unknown", absolute]);
+  if (/\.(?:tsx?|jsx?)$/.test(absolute))
+    run("node_modules/eslint/bin/eslint.js", ["--fix", absolute]);
 }
