@@ -1,0 +1,11 @@
+node_modules
+.next
+pnpm-lock.yaml
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+next-env.d.ts
+torob-bime-agent-prompt.md
+EVAL_REPORT.md
+fixtures/eval-summary.json

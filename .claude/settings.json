@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "bash scripts/agent-edit-hook.sh", "timeout": 120 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash scripts/agent-edit-hook.sh", "timeout": 120 }
+        ]
+      }
+    ]
+  }
+}
