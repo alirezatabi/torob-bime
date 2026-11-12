@@ -3,6 +3,7 @@ import type {
   CoverageConstraint,
   InsuranceSchema,
 } from "@/lib/schemas/contracts";
+import { isScoredField } from "./ranking";
 export type ComparisonState = {
   priorities: string[];
   constraints: CoverageConstraint[];
@@ -20,21 +21,16 @@ export function readComparisonState(
     ...new Set((search.get(key) ?? "").slice(0, 2000).split(",").filter(Boolean)),
   ];
   const priorities = list("priorities")
-    .filter((key) =>
-      schema.fields.some(
-        (field) =>
-          field.key === key && !field.isExclusion && !field.isPremium && field.kind !== "text",
-      ),
-    )
+    .filter((key) => schema.fields.some((field) => field.key === key && isScoredField(field)))
     .slice(0, 12);
   const constraints: CoverageConstraint[] = list("required")
     .filter((key) =>
       schema.fields.some(
         (field) =>
           field.key === key &&
+          isScoredField(field) &&
           field.kind === "boolean" &&
-          field.higherIsBetter &&
-          !field.isExclusion,
+          field.higherIsBetter,
       ),
     )
     .slice(0, 12)

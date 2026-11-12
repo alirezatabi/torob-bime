@@ -7,6 +7,7 @@ import {
   limitationFacts,
   explanationFacts,
   isNonCoverage,
+  scoreContributionFacts,
 } from "@/lib/domain/ranking";
 import { insuranceSchemaSchema, type ComparableProduct } from "@/lib/schemas/contracts";
 import { carBodySchema } from "@/lib/schemas/car-body";
@@ -108,6 +109,82 @@ describe("transparent relative ranking", () => {
     expect(ranked.map((item) => item.product.slug)).toEqual(["lower", "higher"]);
     expect(ranked[0].score).toBe(100);
     expect(ranked[1].score).toBe(0);
+  });
+});
+
+describe("grounded score explanations", () => {
+  it("uses the exact positive score contributions and excludes unknown, zero and premium values", () => {
+    const schema = insuranceSchemaSchema.parse({
+      ...carBodySchema,
+      fields: [
+        { key: "covered", labelFa: "پوشش", kind: "boolean", weight: 2 },
+        { key: "limit", labelFa: "سقف", kind: "number", weight: 1 },
+        { key: "deductible", labelFa: "فرانشیز", kind: "number", higherIsBetter: false },
+        { key: "premium", labelFa: "حق‌بیمه نمونه", kind: "number", isPremium: true },
+        { key: "exclusions", labelFa: "استثنا", kind: "text", isExclusion: true },
+      ],
+    });
+    const base = product(0);
+    const make = (
+      slug: string,
+      covered: boolean,
+      limit: number,
+      deductible: number,
+      limitEvidence: string | null = "quoted",
+    ): ComparableProduct => ({
+      ...base,
+      slug,
+      coverages: [
+        { fieldKey: "covered", value: covered, evidence: "quoted", confidence: 1 },
+        { fieldKey: "limit", value: limit, evidence: limitEvidence, confidence: 1 },
+        { fieldKey: "deductible", value: deductible, evidence: "quoted", confidence: 1 },
+        { fieldKey: "premium", value: 123, evidence: "quoted", confidence: 1 },
+        { fieldKey: "exclusions", value: "بدون پوشش", evidence: "quoted", confidence: 1 },
+      ],
+    });
+    const low = make("low", true, 100, 20);
+    const high = make("high", false, 200, 10);
+    // An ungrounded outlier must not skew either ranking ranges or explanations.
+    const ungrounded = make("ungrounded", false, 999, 10, null);
+    const products = [low, high, ungrounded];
+    const priorities = ["covered"];
+    const lowFacts = scoreContributionFacts(low, schema, priorities, products);
+    const highFacts = scoreContributionFacts(high, schema, priorities, products);
+    expect(lowFacts.map((fact) => fact.field.key)).toEqual(["covered"]);
+    expect(lowFacts[0]).toMatchObject({ normalized: 1, weighted: 6, prioritized: true });
+    expect(highFacts.map((fact) => fact.field.key)).toEqual(["limit", "deductible"]);
+    expect(highFacts.every((fact) => fact.normalized === 1)).toBe(true);
+    expect(scoreContributionFacts(ungrounded, schema, priorities, products)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: expect.objectContaining({ key: "limit" }) }),
+      ]),
+    );
+    const totalWeight = 2 * 3 + 1 + 1;
+    for (const item of rankProducts(products, schema, priorities)) {
+      const contributions = scoreContributionFacts(item.product, schema, priorities, products);
+      expect(item.score).toBe(
+        Math.round(
+          (contributions.reduce((sum, fact) => sum + fact.weighted, 0) / totalWeight) * 100,
+        ),
+      );
+    }
+    expect(
+      rankProducts(products, schema, priorities).find((item) => item.product.slug === "ungrounded")
+        ?.known,
+    ).toBe(2);
+  });
+
+  it("does not label a deductible alone as a non-covered exclusion", () => {
+    const schema = insuranceSchemaSchema.parse({
+      ...carBodySchema,
+      fields: [{ key: "deductible", labelFa: "فرانشیز", kind: "number", higherIsBetter: false }],
+    });
+    const onlyDeductible = {
+      ...product(0),
+      coverages: [{ fieldKey: "deductible", value: 20, evidence: "quoted", confidence: 1 }],
+    };
+    expect(limitationFacts(onlyDeductible, schema, [])).toHaveLength(1);
+    expect(explanationFacts(onlyDeductible, schema, []).limitation).toBeNull();
   });
 });
 

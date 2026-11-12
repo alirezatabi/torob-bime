@@ -7,7 +7,12 @@ import {
   strictTools,
 } from "./anthropic";
 import { z } from "zod";
-import { explanationFacts, isNonCoverage, limitationFacts } from "@/lib/domain/ranking";
+import {
+  explanationFacts,
+  isNonCoverage,
+  limitationFacts,
+  scoreContributionFacts,
+} from "@/lib/domain/ranking";
 import type { ComparableProduct, InsuranceSchema } from "@/lib/schemas/contracts";
 
 export type ExplanationKeys = {
@@ -48,23 +53,36 @@ export async function selectExplanationKeys(
   const defaultItems = fallback(products, schema, priorities);
   if (!aiConfigured()) return { mode: "rules", items: defaultItems };
   const client = anthropicClient();
-  // Pass normalized values, labels, and eligibility only — never source text or personal input.
-  const data = products.map((product) => ({
-    productSlug: product.slug,
-    fields: schema.fields.flatMap((field) => {
-      const value = product.coverages.find((row) => row.fieldKey === field.key);
-      return value?.value !== null && value?.evidence
-        ? [
-            {
-              key: field.key,
-              labelFa: field.labelFa,
-              value: value.value,
-              isExclusion: field.isExclusion,
-            },
-          ]
-        : [];
-    }),
-  }));
+  // Pass eligible normalized values and labels only — never source text or personal input.
+  const data = products.map((product) => {
+    const scoreKeys = new Set(
+      scoreContributionFacts(product, schema, priorities, products).map((fact) => fact.field.key),
+    );
+    const nonCoverageKeys = new Set(
+      limitationFacts(product, schema, priorities)
+        .filter(isNonCoverage)
+        .map((fact) => fact.field.key),
+    );
+    return {
+      productSlug: product.slug,
+      fields: schema.fields.flatMap((field) => {
+        const value = product.coverages.find((row) => row.fieldKey === field.key);
+        return value?.value !== null &&
+          value?.evidence &&
+          (scoreKeys.has(field.key) || nonCoverageKeys.has(field.key))
+          ? [
+              {
+                key: field.key,
+                labelFa: field.labelFa,
+                value: value.value,
+                contributesToScore: scoreKeys.has(field.key),
+                isNonCoverage: nonCoverageKeys.has(field.key),
+              },
+            ]
+          : [];
+      }),
+    };
+  });
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const input = await callAnthropicTool(
@@ -76,7 +94,7 @@ export async function selectExplanationKeys(
             {
               type: "text",
               cache_control: { type: "ephemeral" },
-              text: "Choose one relevant favorable field and one important non-covered exclusion per product from only the supplied normalized facts. Prefer a false coverage, a zero coverage limit, or an explicit exclusion; use another limitation only if none exist. Prioritize the user's selected keys. Do not write prose or add facts. Use null when no eligible fact exists. Call select_facts.",
+              text: "For each product choose one field marked contributesToScore and one marked isNonCoverage, using only the supplied facts. Prefer the user's selected keys. Do not write prose or add facts. Use null when no eligible fact exists. Call select_facts.",
             },
           ],
           messages: [{ role: "user", content: JSON.stringify({ priorities, products: data }) }],
@@ -120,27 +138,16 @@ export async function selectExplanationKeys(
       const valid = parsed.every((item) => {
         const product = products.find((p) => p.slug === item.productSlug);
         if (!product) return false;
-        const positive = product.coverages.find((row) => row.fieldKey === item.positiveFieldKey);
-        const positiveField = schema.fields.find((field) => field.key === item.positiveFieldKey);
-        const booleanIsFavorable =
-          typeof positive?.value !== "boolean" ||
-          (positiveField?.higherIsBetter === false ? !positive.value : positive.value);
         const positiveOk =
           item.positiveFieldKey === null ||
-          Boolean(
-            positive?.evidence &&
-            positive.value !== null &&
-            booleanIsFavorable &&
-            positiveField &&
-            !positiveField.isExclusion &&
-            positiveField.kind !== "text",
+          scoreContributionFacts(product, schema, priorities, products).some(
+            (fact) => fact.field.key === item.positiveFieldKey,
           );
-        const limits = limitationFacts(product, schema, priorities);
-        const explicitNonCoverage = limits.filter(isNonCoverage);
-        const eligibleLimits = explicitNonCoverage.length ? explicitNonCoverage : limits;
         const limitOk =
           item.limitationFieldKey === null ||
-          eligibleLimits.some((fact) => fact.field.key === item.limitationFieldKey);
+          limitationFacts(product, schema, priorities)
+            .filter(isNonCoverage)
+            .some((fact) => fact.field.key === item.limitationFieldKey);
         return positiveOk && limitOk;
       });
       if (valid) return { mode: "ai", items: parsed };

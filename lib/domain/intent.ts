@@ -1,4 +1,5 @@
 import { normalizePersian, parsePersianNumber } from "@/lib/domain/text";
+import { isScoredField } from "@/lib/domain/ranking";
 import { activeSchemas } from "@/lib/schemas/registry";
 import {
   userIntentSchema,
@@ -32,8 +33,7 @@ export function prioritiesForText(text: string, schema: InsuranceSchema): string
   return schema.fields
     .filter(
       (field) =>
-        !field.isExclusion &&
-        field.kind !== "text" &&
+        isScoredField(field) &&
         field.keywords.some((term) => normalized.includes(normalizePersian(term))),
     )
     .map((field) => field.key)
@@ -64,9 +64,9 @@ export function constraintsForText(text: string, schema: InsuranceSchema): Cover
       continue;
     const matches = schema.fields.filter(
       (field) =>
+        isScoredField(field) &&
         field.kind === "boolean" &&
         field.higherIsBetter &&
-        !field.isExclusion &&
         [field.labelFa, ...field.keywords].some((term) => {
           const normalized = normalizePersian(term);
           return normalized.length >= 3 && clause.includes(normalized);

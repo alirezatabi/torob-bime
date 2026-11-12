@@ -69,6 +69,25 @@ describe("Anthropic tool contracts (mocked; not a live model eval)", () => {
     expect(result.priorities).toEqual(["medical_limit"]);
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });
+  it("rejects a model priority that cannot participate in coverage scoring", async () => {
+    const response = (priority: string) => ({
+      content: [
+        {
+          type: "tool_use",
+          name: "classify_intent",
+          input: { typeSlug: "car-body", priorities: [priority], budgetToman: null },
+        },
+      ],
+    });
+    mockCreate
+      .mockResolvedValueOnce(response("sample_premium"))
+      .mockResolvedValueOnce(response("collision"));
+    const result = await understandIntent("برای خودرو بیمه می‌خواهم");
+    expect(result.mode).toBe("ai");
+    expect(result.priorities).toEqual(["collision"]);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(mockCreate.mock.calls[0][0].system)).not.toContain("sample_premium");
+  });
   it("does not accept model-invented budgets or requirements", async () => {
     mockCreate.mockResolvedValue({
       content: [
@@ -119,6 +138,35 @@ describe("Anthropic tool contracts (mocked; not a live model eval)", () => {
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(mockCreate.mock.calls[0][0].messages)).not.toContain(sourceText);
     expect(JSON.stringify(mockCreate.mock.calls[0][0].messages)).not.toContain("sourceText");
+  });
+  it("rejects a premium or deductible as an explanation of coverage or non-coverage", async () => {
+    const { sourceText, ...data } = samples[0];
+    const coverages = groundExtraction(
+      extractOffline(carBodySchema, sourceText),
+      carBodySchema,
+      sourceText,
+    ).values;
+    const product = { ...data, coverages };
+    const response = (positiveFieldKey: string, limitationFieldKey: string) => ({
+      content: [
+        {
+          type: "tool_use",
+          name: "select_facts",
+          input: { items: [{ productSlug: product.slug, positiveFieldKey, limitationFieldKey }] },
+        },
+      ],
+    });
+    mockCreate
+      .mockResolvedValueOnce(response("sample_premium", "exclusions"))
+      .mockResolvedValueOnce(response("collision", "deductible"));
+    const result = await selectExplanationKeys([product], carBodySchema, []);
+    expect(result.mode).toBe("rules");
+    expect(result.items[0].positiveFieldKey).not.toBe("sample_premium");
+    expect(result.items[0].limitationFieldKey).not.toBe("deductible");
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    const sent = JSON.stringify(mockCreate.mock.calls[0][0].messages);
+    expect(sent).not.toContain("sample_premium");
+    expect(sent).not.toContain(sourceText);
   });
   it("labels provider failures as rule fallback", async () => {
     mockCreate.mockRejectedValue(new Error("provider unavailable"));

@@ -22,6 +22,17 @@ export function getCoverage(
   return product.coverages.find((value) => value.fieldKey === fieldKey);
 }
 
+/** The same set of fields is used by intent, ranking and score explanations. */
+export function isScoredField(field: CoverageField): boolean {
+  return !field.isExclusion && !field.isPremium && field.kind !== "text";
+}
+
+function scoreableValue(product: ComparableProduct, fieldKey: string): CoveragePrimitive {
+  const coverage = getCoverage(product, fieldKey);
+  // The catalogue grounds values before ranking; keep this boundary defensive too.
+  return coverage?.evidence ? coverage.value : null;
+}
+
 /** Confirmed requirements first, then a relative score; unknown is zero and priorities weigh 3×. */
 export function rankProducts(
   products: ComparableProduct[],
@@ -29,9 +40,7 @@ export function rankProducts(
   priorities: string[],
   constraints: CoverageConstraint[] = [],
 ): RankedProduct[] {
-  const fields = schema.fields.filter(
-    (field) => !field.isExclusion && !field.isPremium && field.kind !== "text",
-  );
+  const fields = schema.fields.filter(isScoredField);
   const requiredKeys = [...new Set(constraints.map((constraint) => constraint.fieldKey))].filter(
     (key) =>
       fields.some((field) => field.key === key && field.kind === "boolean" && field.higherIsBetter),
@@ -43,7 +52,7 @@ export function rankProducts(
   const ranges = new Map<string, { min: number; max: number }>();
   for (const field of fields) {
     const nums = products
-      .map((product) => getCoverage(product, field.key)?.value)
+      .map((product) => scoreableValue(product, field.key))
       .filter((value): value is number => typeof value === "number");
     if (nums.length) ranges.set(field.key, { min: Math.min(...nums), max: Math.max(...nums) });
   }
@@ -52,10 +61,10 @@ export function rankProducts(
       let weighted = 0;
       let known = 0;
       for (const field of fields) {
-        const value = getCoverage(product, field.key)?.value ?? null;
-        if (value !== null) known++;
-        const normalized = normalizedFieldScore(field, value, ranges.get(field.key)) ?? 0;
-        weighted += normalized * field.weight * (priorities.includes(field.key) ? 3 : 1);
+        const value = scoreableValue(product, field.key);
+        const normalized = normalizedFieldScore(field, value, ranges.get(field.key));
+        if (normalized !== null) known++;
+        weighted += (normalized ?? 0) * field.weight * (priorities.includes(field.key) ? 3 : 1);
       }
       return {
         product,
@@ -146,12 +155,59 @@ export function relativeFieldScore(
   field: CoverageField,
   products: ComparableProduct[],
 ): number | null {
-  const value = getCoverage(product, field.key)?.value ?? null;
+  const value = scoreableValue(product, field.key);
   const nums = products
-    .map((item) => getCoverage(item, field.key)?.value)
+    .map((item) => scoreableValue(item, field.key))
     .filter((item): item is number => typeof item === "number");
   const range = nums.length ? { min: Math.min(...nums), max: Math.max(...nums) } : undefined;
   return normalizedFieldScore(field, value, range);
+}
+
+export type ScoreContribution = FieldFact & {
+  normalized: number;
+  weighted: number;
+  prioritized: boolean;
+  differs: boolean;
+};
+
+/**
+ * Only grounded fields with a positive contribution can explain the score.
+ * The normalized value and weighting are exactly those used by rankProducts;
+ * neither an exclusion nor a sample premium participates in the score.
+ */
+export function scoreContributionFacts(
+  product: ComparableProduct,
+  schema: InsuranceSchema,
+  priorities: string[],
+  products: ComparableProduct[],
+): ScoreContribution[] {
+  return schema.fields
+    .filter(isScoredField)
+    .flatMap((field) => {
+      const coverage = getCoverage(product, field.key);
+      const normalized = relativeFieldScore(product, field, products);
+      if (!coverage?.evidence || coverage.value === null || normalized === null || normalized <= 0)
+        return [];
+      const prioritized = priorities.includes(field.key);
+      const differs =
+        new Set(products.map((item) => JSON.stringify(scoreableValue(item, field.key)))).size > 1;
+      return [
+        {
+          field,
+          coverage,
+          normalized,
+          weighted: normalized * field.weight * (prioritized ? 3 : 1),
+          prioritized,
+          differs,
+        },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        Number(b.prioritized) - Number(a.prioritized) ||
+        Number(b.differs) - Number(a.differs) ||
+        b.weighted - a.weighted,
+    );
 }
 
 export function explanationFacts(
@@ -160,42 +216,9 @@ export function explanationFacts(
   priorities: string[],
   products: ComparableProduct[] = [product],
 ): { positive: FieldFact | null; limitation: FieldFact | null } {
-  const candidates = schema.fields
-    .flatMap((field) => {
-      const coverage = getCoverage(product, field.key);
-      if (
-        !coverage ||
-        coverage.value === null ||
-        !coverage.evidence ||
-        field.isExclusion ||
-        field.isPremium ||
-        field.kind === "text"
-      )
-        return [];
-      if (
-        typeof coverage.value === "boolean" &&
-        (field.higherIsBetter === false ? coverage.value : !coverage.value)
-      )
-        return [];
-      return [{ field, coverage }];
-    })
-    .sort((a, b) => {
-      const contribution = (fact: FieldFact) => {
-        const values = products.map((item) => getCoverage(item, fact.field.key)?.value ?? null);
-        const differentiates = new Set(values.map((value) => JSON.stringify(value))).size > 1;
-        const relative = relativeFieldScore(product, fact.field, products) ?? 0;
-        return (
-          relative *
-          fact.field.weight *
-          (priorities.includes(fact.field.key) ? 3 : 1) *
-          (differentiates ? 1 : 0.01)
-        );
-      };
-      return contribution(b) - contribution(a) || b.field.weight - a.field.weight;
-    });
-  const limitations = limitationFacts(product, schema, priorities);
   return {
-    positive: candidates[0] ?? null,
-    limitation: limitations.find(isNonCoverage) ?? limitations[0] ?? null,
+    positive: scoreContributionFacts(product, schema, priorities, products)[0] ?? null,
+    // Never describe a deductible or another general limit as a lack of coverage.
+    limitation: limitationFacts(product, schema, priorities).find(isNonCoverage) ?? null,
   };
 }

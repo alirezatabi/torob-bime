@@ -4,7 +4,7 @@ import { classifyIntentOffline } from "@/lib/domain/intent";
 import { normalizePersian, parsePersianNumber, sanitizeInput } from "@/lib/domain/text";
 
 describe("Persian intent and input handling", () => {
-  it("meets the documented type threshold on the independent set", () => {
+  it("meets the documented type threshold on the synthetic set", () => {
     expect(cases.length).toBeGreaterThanOrEqual(20);
     const correct = cases.filter(
       (test) => classifyIntentOffline(test.text).typeSlug === test.expectedType,
@@ -21,6 +21,11 @@ describe("Persian intent and input handling", () => {
     const result = classifyIntentOffline("برای مادرم بیمه تکمیلی می‌خواهم");
     expect(result.typeSlug).toBe("supplementary-health");
     expect(result.priorities).not.toContain("preexisting");
+  });
+  it("does not turn a sample premium into a coverage-scoring priority", () => {
+    const intent = classifyIntentOffline("برای خودرو حق بیمه نمونه مهم است");
+    expect(intent.typeSlug).toBe("car-body");
+    expect(intent.priorities).not.toContain("sample_premium");
   });
   it("recognizes only an unambiguous explicit coverage requirement", () => {
     const required = classifyIntentOffline(
