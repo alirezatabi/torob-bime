@@ -1,0 +1,184 @@
+{
+  "mode": "offline-structured-parser",
+  "generatedAt": "2026-11-12T09:10:11.903Z",
+  "extractionCases": 34,
+  "valuesChecked": 132,
+  "fieldAccuracy": 95.5,
+  "groundingRate": 100,
+  "rawGrounded": 91,
+  "rawNonNull": 91,
+  "invalidRuns": 0,
+  "retriedRuns": 0,
+  "intentCases": 30,
+  "intentAccuracy": 93.3,
+  "priorityExactAccuracy": 93.3,
+  "modelFallbacks": 0,
+  "fieldBreakdown": [
+    {
+      "key": "car-body.collision",
+      "label": "تصادف و برخورد",
+      "correct": 7,
+      "total": 8,
+      "accuracy": 87.5
+    },
+    {
+      "key": "car-body.total_theft",
+      "label": "سرقت کلی خودرو",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "car-body.deductible",
+      "label": "فرانشیز هر خسارت",
+      "correct": 7,
+      "total": 8,
+      "accuracy": 87.5
+    },
+    {
+      "key": "car-body.minor_damage",
+      "label": "خسارت جزئی و خط‌وخش",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "car-body.natural_events",
+      "label": "حوادث طبیعی",
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100
+    },
+    {
+      "key": "car-body.vehicle_limit",
+      "label": "سقف ارزش خودرو",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "car-body.partial_theft",
+      "label": "سرقت لوازم خودرو",
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100
+    },
+    {
+      "key": "car-body.exclusions",
+      "label": "استثنای مهم",
+      "correct": 2,
+      "total": 2,
+      "accuracy": 100
+    },
+    {
+      "key": "supplementary-health.hospital_limit",
+      "label": "سقف بستری و جراحی",
+      "correct": 7,
+      "total": 8,
+      "accuracy": 87.5
+    },
+    {
+      "key": "supplementary-health.dental_limit",
+      "label": "سقف دندان‌پزشکی",
+      "correct": 6,
+      "total": 7,
+      "accuracy": 85.7
+    },
+    {
+      "key": "supplementary-health.waiting_period",
+      "label": "دوره انتظار",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "supplementary-health.preexisting",
+      "label": "بیماری‌های از پیش موجود",
+      "correct": 7,
+      "total": 7,
+      "accuracy": 100
+    },
+    {
+      "key": "supplementary-health.outpatient_limit",
+      "label": "سقف خدمات سرپایی",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "supplementary-health.deductible",
+      "label": "فرانشیز درمان",
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100
+    },
+    {
+      "key": "supplementary-health.exclusions",
+      "label": "استثنای مهم",
+      "correct": 4,
+      "total": 4,
+      "accuracy": 100
+    },
+    {
+      "key": "travel.medical_limit",
+      "label": "سقف هزینه درمان اضطراری",
+      "correct": 8,
+      "total": 9,
+      "accuracy": 88.9
+    },
+    {
+      "key": "travel.baggage_delay",
+      "label": "تأخیر در تحویل بار",
+      "correct": 7,
+      "total": 7,
+      "accuracy": 100
+    },
+    {
+      "key": "travel.trip_cancellation",
+      "label": "لغو سفر",
+      "correct": 5,
+      "total": 6,
+      "accuracy": 83.3
+    },
+    {
+      "key": "travel.deductible",
+      "label": "فرانشیز درمان اضطراری",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "travel.emergency_dental",
+      "label": "سقف دندان‌پزشکی اضطراری",
+      "correct": 6,
+      "total": 6,
+      "accuracy": 100
+    },
+    {
+      "key": "travel.adventure_sports",
+      "label": "ورزش‌های پرخطر",
+      "correct": 5,
+      "total": 5,
+      "accuracy": 100
+    },
+    {
+      "key": "travel.exclusions",
+      "label": "استثنای مهم",
+      "correct": 4,
+      "total": 4,
+      "accuracy": 100
+    }
+  ],
+  "failures": [
+    "C11/collision: expected true, got null",
+    "C11/deductible: expected 10, got null",
+    "H11/hospital_limit: expected 90000000, got null",
+    "H11/dental_limit: expected 0, got null",
+    "T11/medical_limit: expected 30000, got null",
+    "T11/trip_cancellation: expected false, got null",
+    "I29: expected type supplementary-health, got clarify",
+    "I29: expected priorities [\"hospital_limit\"], got []",
+    "I30: expected type travel, got clarify",
+    "I30: expected priorities [\"medical_limit\"], got []"
+  ]
+}

@@ -1,0 +1,372 @@
+[
+  {
+    "id": "C01",
+    "typeSlug": "car-body",
+    "sourceText": "تصادف و برخورد: پوشش دارد.\nسرقت کلی خودرو: پوشش ندارد.\nفرانشیز هر خسارت: ۱۵ درصد.",
+    "expected": {
+      "collision": true,
+      "total_theft": false,
+      "deductible": 15,
+      "minor_damage": null
+    }
+  },
+  {
+    "id": "C02",
+    "typeSlug": "car-body",
+    "sourceText": "تصادف و برخورد: پوشش دارد.\nحوادث طبیعی: پوشش ندارد.\nسقف ارزش خودرو: ۱٬۵۰۰٬۰۰۰٬۰۰۰ تومان.",
+    "expected": {
+      "collision": true,
+      "natural_events": false,
+      "vehicle_limit": 1500000000,
+      "partial_theft": null
+    }
+  },
+  {
+    "id": "C03",
+    "typeSlug": "car-body",
+    "sourceText": "سرقت لوازم خودرو: پوشش دارد.\nخسارت جزئی و خط‌وخش: پوشش ندارد.\nفرانشیز هر خسارت: ۱۰ درصد.",
+    "expected": {
+      "partial_theft": true,
+      "minor_damage": false,
+      "deductible": 10,
+      "collision": null
+    }
+  },
+  {
+    "id": "C04",
+    "typeSlug": "car-body",
+    "sourceText": "تصادف و برخورد: پوشش ندارد.\nسرقت کلی خودرو: پوشش دارد.\nخسارت جزئی و خط‌وخش: پوشش دارد.\nفرانشیز هر خسارت: ۲۰ درصد.",
+    "expected": {
+      "collision": false,
+      "total_theft": true,
+      "minor_damage": true,
+      "deductible": 20
+    }
+  },
+  {
+    "id": "C05",
+    "typeSlug": "car-body",
+    "sourceText": "حوادث طبیعی: پوشش دارد.\nسرقت لوازم خودرو: پوشش ندارد.\nسقف ارزش خودرو: ۲ میلیارد تومان.",
+    "expected": {
+      "natural_events": true,
+      "partial_theft": false,
+      "vehicle_limit": 2000000000,
+      "total_theft": null
+    }
+  },
+  {
+    "id": "C06",
+    "typeSlug": "car-body",
+    "sourceText": "خسارت جزئی و خط‌وخش: پوشش دارد.\nفرانشیز هر خسارت: ۵ درصد.\nاستثنای مهم: مسابقه پوشش ندارد.",
+    "expected": {
+      "minor_damage": true,
+      "deductible": 5,
+      "exclusions": "مسابقه پوشش ندارد",
+      "natural_events": null
+    }
+  },
+  {
+    "id": "C07",
+    "typeSlug": "car-body",
+    "sourceText": "سقف ارزش خودرو: ۹۰۰ میلیون تومان.\nسرقت کلی خودرو: پوشش دارد.\nحوادث طبیعی: پوشش ندارد.",
+    "expected": {
+      "vehicle_limit": 900000000,
+      "total_theft": true,
+      "natural_events": false,
+      "collision": null
+    }
+  },
+  {
+    "id": "C08",
+    "typeSlug": "car-body",
+    "sourceText": "تصادف و برخورد: پوشش دارد.\nاین سند نمونه است.\nفرانشیز هر خسارت: ۲۵ درصد.",
+    "expected": {
+      "collision": true,
+      "deductible": 25,
+      "minor_damage": null,
+      "partial_theft": null
+    }
+  },
+  {
+    "id": "C09",
+    "typeSlug": "car-body",
+    "sourceText": "حوادث طبیعی: پوشش ندارد.\nفرانشیز هر خسارت: ۱۲٫۵ درصد.\nسرقت کلی خودرو: پوشش ندارد.",
+    "expected": {
+      "natural_events": false,
+      "deductible": 12.5,
+      "total_theft": false,
+      "vehicle_limit": null
+    }
+  },
+  {
+    "id": "C10",
+    "typeSlug": "car-body",
+    "sourceText": "خسارت جزئی و خط‌وخش: پوشش دارد.\nسرقت لوازم خودرو: پوشش دارد.\nسقف ارزش خودرو: ۱٬۲۰۰٬۰۰۰٬۰۰۰ تومان.",
+    "expected": {
+      "minor_damage": true,
+      "partial_theft": true,
+      "vehicle_limit": 1200000000,
+      "exclusions": null
+    }
+  },
+  {
+    "id": "H01",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف بستری و جراحی: ۱۰۰٬۰۰۰٬۰۰۰ تومان.\nسقف دندان‌پزشکی: ۱۰٬۰۰۰٬۰۰۰ تومان.\nدوره انتظار: ۳ ماه.",
+    "expected": {
+      "hospital_limit": 100000000,
+      "dental_limit": 10000000,
+      "waiting_period": 3,
+      "preexisting": null
+    }
+  },
+  {
+    "id": "H02",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف خدمات سرپایی: ۵ میلیون تومان.\nفرانشیز درمان: ۲۰ درصد.\nبیماری‌های از پیش موجود: پوشش ندارد.",
+    "expected": {
+      "outpatient_limit": 5000000,
+      "deductible": 20,
+      "preexisting": false,
+      "hospital_limit": null
+    }
+  },
+  {
+    "id": "H03",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف دندان‌پزشکی: ۰ تومان.\nسقف بستری و جراحی: ۸۰ میلیون تومان.\nدوره انتظار: ۶ ماه.",
+    "expected": {
+      "dental_limit": 0,
+      "hospital_limit": 80000000,
+      "waiting_period": 6,
+      "outpatient_limit": null
+    }
+  },
+  {
+    "id": "H04",
+    "typeSlug": "supplementary-health",
+    "sourceText": "بیماری‌های از پیش موجود: پوشش دارد.\nفرانشیز درمان: ۱۰ درصد.\nسقف خدمات سرپایی: ۱۲٬۰۰۰٬۰۰۰ تومان.",
+    "expected": {
+      "preexisting": true,
+      "deductible": 10,
+      "outpatient_limit": 12000000,
+      "dental_limit": null
+    }
+  },
+  {
+    "id": "H05",
+    "typeSlug": "supplementary-health",
+    "sourceText": "استثنای مهم: هزینه زیبایی پوشش ندارد.\nدوره انتظار: ۰ ماه.\nسقف دندان‌پزشکی: ۱۵ میلیون تومان.",
+    "expected": {
+      "exclusions": "هزینه زیبایی پوشش ندارد",
+      "waiting_period": 0,
+      "dental_limit": 15000000,
+      "hospital_limit": null
+    }
+  },
+  {
+    "id": "H06",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف بستری و جراحی: ۱۶۰٬۰۰۰٬۰۰۰ تومان.\nفرانشیز درمان: ۳۰ درصد.\nسقف خدمات سرپایی: ۴٬۰۰۰٬۰۰۰ تومان.",
+    "expected": {
+      "hospital_limit": 160000000,
+      "deductible": 30,
+      "outpatient_limit": 4000000,
+      "preexisting": null
+    }
+  },
+  {
+    "id": "H07",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف دندان‌پزشکی: ۲۰ میلیون تومان.\nبیماری‌های از پیش موجود: پوشش ندارد.\nدوره انتظار: ۲ ماه.",
+    "expected": {
+      "dental_limit": 20000000,
+      "preexisting": false,
+      "waiting_period": 2,
+      "exclusions": null
+    }
+  },
+  {
+    "id": "H08",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف بستری و جراحی: ۱۲۰ میلیون تومان.\nسقف خدمات سرپایی: ۸ میلیون تومان.\nاستثنای مهم: داروی خارج از فهرست پوشش ندارد.",
+    "expected": {
+      "hospital_limit": 120000000,
+      "outpatient_limit": 8000000,
+      "exclusions": "داروی خارج از فهرست پوشش ندارد",
+      "deductible": null
+    }
+  },
+  {
+    "id": "H09",
+    "typeSlug": "supplementary-health",
+    "sourceText": "فرانشیز درمان: ۱۵ درصد.\nسقف دندان‌پزشکی: ۷٬۵۰۰٬۰۰۰ تومان.\nبیماری‌های از پیش موجود: پوشش ندارد.",
+    "expected": {
+      "deductible": 15,
+      "dental_limit": 7500000,
+      "preexisting": false,
+      "waiting_period": null
+    }
+  },
+  {
+    "id": "H10",
+    "typeSlug": "supplementary-health",
+    "sourceText": "دوره انتظار: ۴ ماه.\nسقف بستری و جراحی: ۲۰۰٬۰۰۰٬۰۰۰ تومان.\nسقف خدمات سرپایی: ۱۰ میلیون تومان.",
+    "expected": {
+      "waiting_period": 4,
+      "hospital_limit": 200000000,
+      "outpatient_limit": 10000000,
+      "exclusions": null
+    }
+  },
+  {
+    "id": "T01",
+    "typeSlug": "travel",
+    "sourceText": "سقف هزینه درمان اضطراری: ۳۰٬۰۰۰ یورو.\nتأخیر در تحویل بار: پوشش دارد.\nلغو سفر: پوشش ندارد.",
+    "expected": {
+      "medical_limit": 30000,
+      "baggage_delay": true,
+      "trip_cancellation": false,
+      "deductible": null
+    }
+  },
+  {
+    "id": "T02",
+    "typeSlug": "travel",
+    "sourceText": "سقف دندان‌پزشکی اضطراری: ۵۰۰ یورو.\nورزش‌های پرخطر: پوشش ندارد.\nفرانشیز درمان اضطراری: ۵۰ یورو.",
+    "expected": {
+      "emergency_dental": 500,
+      "adventure_sports": false,
+      "deductible": 50,
+      "medical_limit": null
+    }
+  },
+  {
+    "id": "T03",
+    "typeSlug": "travel",
+    "sourceText": "سقف هزینه درمان اضطراری: ۵۰٬۰۰۰ یورو.\nلغو سفر: پوشش دارد.\nتأخیر در تحویل بار: پوشش دارد.",
+    "expected": {
+      "medical_limit": 50000,
+      "trip_cancellation": true,
+      "baggage_delay": true,
+      "exclusions": null
+    }
+  },
+  {
+    "id": "T04",
+    "typeSlug": "travel",
+    "sourceText": "فرانشیز درمان اضطراری: ۰ یورو.\nورزش‌های پرخطر: پوشش دارد.\nاستثنای مهم: مسابقه حرفه‌ای پوشش ندارد.",
+    "expected": {
+      "deductible": 0,
+      "adventure_sports": true,
+      "exclusions": "مسابقه حرفه‌ای پوشش ندارد",
+      "emergency_dental": null
+    }
+  },
+  {
+    "id": "T05",
+    "typeSlug": "travel",
+    "sourceText": "سقف هزینه درمان اضطراری: ۱۵٬۰۰۰ یورو.\nسقف دندان‌پزشکی اضطراری: ۱۵۰ یورو.\nلغو سفر: پوشش ندارد.",
+    "expected": {
+      "medical_limit": 15000,
+      "emergency_dental": 150,
+      "trip_cancellation": false,
+      "baggage_delay": null
+    }
+  },
+  {
+    "id": "T06",
+    "typeSlug": "travel",
+    "sourceText": "تأخیر در تحویل بار: پوشش ندارد.\nفرانشیز درمان اضطراری: ۷۵ یورو.\nورزش‌های پرخطر: پوشش ندارد.",
+    "expected": {
+      "baggage_delay": false,
+      "deductible": 75,
+      "adventure_sports": false,
+      "medical_limit": null
+    }
+  },
+  {
+    "id": "T07",
+    "typeSlug": "travel",
+    "sourceText": "سقف دندان‌پزشکی اضطراری: ۲۵۰ یورو.\nاستثنای مهم: درمان بیماری پیشین پوشش ندارد.\nلغو سفر: پوشش ندارد.",
+    "expected": {
+      "emergency_dental": 250,
+      "exclusions": "درمان بیماری پیشین پوشش ندارد",
+      "trip_cancellation": false,
+      "deductible": null
+    }
+  },
+  {
+    "id": "T08",
+    "typeSlug": "travel",
+    "sourceText": "سقف هزینه درمان اضطراری: ۲۰ هزار یورو.\nتأخیر در تحویل بار: پوشش دارد.\nفرانشیز درمان اضطراری: ۳۰ یورو.",
+    "expected": {
+      "medical_limit": 20000,
+      "baggage_delay": true,
+      "deductible": 30,
+      "adventure_sports": null
+    }
+  },
+  {
+    "id": "T09",
+    "typeSlug": "travel",
+    "sourceText": "ورزش‌های پرخطر: پوشش دارد.\nسقف دندان‌پزشکی اضطراری: ۲۰۰ یورو.\nلغو سفر: پوشش دارد.",
+    "expected": {
+      "adventure_sports": true,
+      "emergency_dental": 200,
+      "trip_cancellation": true,
+      "medical_limit": null
+    }
+  },
+  {
+    "id": "T10",
+    "typeSlug": "travel",
+    "sourceText": "استثنای مهم: سفر برخلاف توصیه پزشک پوشش ندارد.\nسقف هزینه درمان اضطراری: ۴۰٬۰۰۰ یورو.\nتأخیر در تحویل بار: پوشش ندارد.",
+    "expected": {
+      "exclusions": "سفر برخلاف توصیه پزشک پوشش ندارد",
+      "medical_limit": 40000,
+      "baggage_delay": false,
+      "emergency_dental": null
+    }
+  },
+  {
+    "id": "C11",
+    "typeSlug": "car-body",
+    "sourceText": "در این نمونه، خسارت ناشی از برخورد خودرو جبران می‌شود؛ برای هر خسارت ۱۰ درصد فرانشیز تعیین شده است.",
+    "expected": {
+      "collision": true,
+      "deductible": 10,
+      "total_theft": null
+    }
+  },
+  {
+    "id": "H11",
+    "typeSlug": "supplementary-health",
+    "sourceText": "سقف پرداخت هزینه بستری و جراحی در سال ۹۰ میلیون تومان است. خدمات دندان‌پزشکی تحت پوشش نیست.",
+    "expected": {
+      "hospital_limit": 90000000,
+      "dental_limit": 0,
+      "preexisting": null
+    }
+  },
+  {
+    "id": "T11",
+    "typeSlug": "travel",
+    "sourceText": "هزینه درمان اضطراری تا سقف ۳۰ هزار یورو جبران می‌شود؛ هزینه لغو سفر پرداخت نمی‌شود.",
+    "expected": {
+      "medical_limit": 30000,
+      "trip_cancellation": false,
+      "baggage_delay": null
+    }
+  },
+  {
+    "id": "C12",
+    "typeSlug": "car-body",
+    "sourceText": "تصادف و برخورد: پوشش دارد.\nدر متن درباره سقف ارزش خودرو عددی تعیین نشده است.",
+    "expected": {
+      "collision": true,
+      "vehicle_limit": null,
+      "deductible": null
+    }
+  }
+]

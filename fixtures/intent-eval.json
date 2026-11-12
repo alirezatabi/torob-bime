@@ -1,0 +1,182 @@
+[
+  {
+    "id": "I01",
+    "text": "ماشین نو خریدم و نگران تصادف جزئی‌ام",
+    "expectedType": "car-body",
+    "expectedPriorities": ["collision", "minor_damage"]
+  },
+  {
+    "id": "I02",
+    "text": "بیمه بدنه برای سرقت لوازم خودرو می‌خواهم",
+    "expectedType": "car-body",
+    "expectedPriorities": ["total_theft", "partial_theft"]
+  },
+  {
+    "id": "I03",
+    "text": "برای ماشینم پوشش سیل و زلزله می‌خواهم",
+    "expectedType": "car-body",
+    "expectedPriorities": ["natural_events"]
+  },
+  {
+    "id": "I04",
+    "text": "فرانشیز بیمه بدنه چقدر است؟",
+    "expectedType": "car-body",
+    "expectedPriorities": ["deductible"]
+  },
+  {
+    "id": "I05",
+    "text": "برای خودرو خط و خش مهم است",
+    "expectedType": "car-body",
+    "expectedPriorities": ["minor_damage"]
+  },
+  {
+    "id": "I06",
+    "text": "بیمه اتومبیل برای تصادف می‌خواهم",
+    "expectedType": "car-body",
+    "expectedPriorities": ["collision"]
+  },
+  {
+    "id": "I07",
+    "text": "سرقت خودرو نگرانم می‌کند",
+    "expectedType": "car-body",
+    "expectedPriorities": ["total_theft", "partial_theft"]
+  },
+  {
+    "id": "I08",
+    "text": "ماشین مدل بالا دارم سقف ارزش خودرو مهم است",
+    "expectedType": "car-body",
+    "expectedPriorities": ["vehicle_limit"]
+  },
+  {
+    "id": "I09",
+    "text": "برای مادرم بیمه تکمیلی می‌خواهم",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": []
+  },
+  {
+    "id": "I10",
+    "text": "بیمه درمان تکمیلی با پوشش دندان‌پزشکی",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["dental_limit"]
+  },
+  {
+    "id": "I11",
+    "text": "هزینه بستری و جراحی برای بیمه درمان",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["hospital_limit"]
+  },
+  {
+    "id": "I12",
+    "text": "درمان تکمیلی با انتظار کوتاه",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["waiting_period"]
+  },
+  {
+    "id": "I13",
+    "text": "درمان با پوشش آزمایش و ویزیت",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["outpatient_limit"]
+  },
+  {
+    "id": "I14",
+    "text": "بیمه تکمیلی برای بیماری از پیش موجود",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["preexisting"]
+  },
+  {
+    "id": "I15",
+    "text": "فرانشیز بیمه درمان چقدر است؟",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["deductible"]
+  },
+  {
+    "id": "I16",
+    "text": "پوشش بیمارستان برای تکمیلی",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["hospital_limit"]
+  },
+  {
+    "id": "I17",
+    "text": "برای سفر شنگن بیمه با پوشش درمان می‌خواهم",
+    "expectedType": "travel",
+    "expectedPriorities": ["medical_limit"]
+  },
+  {
+    "id": "I18",
+    "text": "بیمه مسافرتی برای چمدان می‌خواهم",
+    "expectedType": "travel",
+    "expectedPriorities": ["baggage_delay"]
+  },
+  {
+    "id": "I19",
+    "text": "در سفر احتمال لغو وجود دارد",
+    "expectedType": "travel",
+    "expectedPriorities": ["trip_cancellation"]
+  },
+  {
+    "id": "I20",
+    "text": "مسافرتی برای ورزش اسکی می‌خواهم",
+    "expectedType": "travel",
+    "expectedPriorities": ["adventure_sports"]
+  },
+  {
+    "id": "I21",
+    "text": "فرانشیز بیمه مسافرتی مهم است",
+    "expectedType": "travel",
+    "expectedPriorities": ["deductible"]
+  },
+  {
+    "id": "I22",
+    "text": "در سفر اروپایی هزینه دندان مهم است",
+    "expectedType": "travel",
+    "expectedPriorities": ["emergency_dental"]
+  },
+  {
+    "id": "I23",
+    "text": "بیمه مسافرتی با تأخیر بار",
+    "expectedType": "travel",
+    "expectedPriorities": ["baggage_delay"]
+  },
+  {
+    "id": "I24",
+    "text": "سفر خارج از کشور با درمان اضطراری",
+    "expectedType": "travel",
+    "expectedPriorities": ["medical_limit"]
+  },
+  {
+    "id": "I25",
+    "text": "یک بیمه خوب می‌خواهم",
+    "expectedType": null,
+    "expectedPriorities": []
+  },
+  {
+    "id": "I26",
+    "text": "برای خانواده‌ام کدام بیمه بهتر است؟",
+    "expectedType": null,
+    "expectedPriorities": []
+  },
+  {
+    "id": "I27",
+    "text": "ماشین دارم و برای سفر هم بیمه می‌خواهم",
+    "expectedType": null,
+    "expectedPriorities": []
+  },
+  {
+    "id": "I28",
+    "text": "بیمه می‌خواهم",
+    "expectedType": null,
+    "expectedPriorities": []
+  },
+  {
+    "id": "I29",
+    "text": "برای عمل قلب بیمه می‌خواهم",
+    "expectedType": "supplementary-health",
+    "expectedPriorities": ["hospital_limit"]
+  },
+  {
+    "id": "I30",
+    "text": "می‌روم اروپا، اگر مریض شدم کدام بیمه؟",
+    "expectedType": "travel",
+    "expectedPriorities": ["medical_limit"]
+  }
+]
