@@ -52,6 +52,21 @@ describe("API abuse protections", () => {
         )
       ).status,
     ).toBe(403);
+    // A matching host with a different scheme is not the same origin.
+    expect(
+      (
+        await postIntent(
+          request("intent", { text: "برای سفر بیمه" }, { origin: "https://example.test" }),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await postIntent(
+          request("intent", { text: "برای سفر بیمه" }, { origin: "http://example.test" }),
+        )
+      ).status,
+    ).toBe(200);
   });
   it("returns 429 with Retry-After after the per-client bucket is exhausted", async () => {
     for (let i = 0; i < 20; i++)

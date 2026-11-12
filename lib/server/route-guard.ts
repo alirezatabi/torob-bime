@@ -17,8 +17,18 @@ export function guardJsonPost(
   if (origin) {
     try {
       const url = new URL(origin);
-      const host = request.headers.get("host") ?? new URL(request.url).host;
-      if (!/^https?:$/.test(url.protocol) || url.host !== host)
+      const requestUrl = new URL(request.url);
+      const host = request.headers.get("host") ?? requestUrl.host;
+      const expected = new URL(`${requestUrl.protocol}//${host}`);
+      if (
+        !/^https?:$/.test(url.protocol) ||
+        url.origin !== expected.origin ||
+        url.pathname !== "/" ||
+        url.search ||
+        url.hash ||
+        url.username ||
+        url.password
+      )
         return NextResponse.json({ error: "مبدأ درخواست مجاز نیست." }, { status: 403 });
     } catch {
       return NextResponse.json({ error: "مبدأ درخواست مجاز نیست." }, { status: 403 });
