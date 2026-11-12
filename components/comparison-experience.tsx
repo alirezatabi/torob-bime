@@ -1,9 +1,8 @@
 "use client";
-import Link from "next/link";
-import { useMemo, useState, useEffect, useSyncExternalStore } from "react";
+import { useMemo, useState, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { z } from "zod";
-import { ArrowLeft, Check, ChevronLeft, Copy, Info, ShieldAlert, X } from "lucide-react";
+import { Check, Copy, ShieldAlert, X } from "lucide-react";
 import { faNumber, formatMoney, formatValue } from "@/lib/domain/format";
 import { getCoverage, limitationFacts, isNonCoverage, rankProducts } from "@/lib/domain/ranking";
 import { readComparisonState, type ComparisonState } from "@/lib/domain/comparison-query";
@@ -49,19 +48,11 @@ function browserQuery() {
 type Props = {
   schema: InsuranceSchema;
   products: ComparableProduct[];
-  mode: "sample" | "fallback" | "database";
-  fallbackReason?: "db-unreachable" | "empty" | "invalid-schema";
+  catalogueNotice: ReactNode;
   initial: ComparisonState;
   hasAi: boolean;
 };
-export function ComparisonExperience({
-  schema,
-  products,
-  mode,
-  fallbackReason,
-  initial,
-  hasAi,
-}: Props) {
+export function ComparisonExperience({ schema, products, catalogueNotice, initial, hasAi }: Props) {
   const search = useSearchParams();
   const pathname = usePathname();
   const queryKey = useSyncExternalStore(
@@ -204,31 +195,8 @@ export function ComparisonExperience({
       setNotice("کپی خودکار ممکن نبود؛ نشانی مرورگر را کپی کنید.");
     }
   }
-  if (products.length < 2)
-    return (
-      <main className="mx-auto max-w-3xl px-5 py-20 text-center">
-        <h1 className="text-xl font-extrabold">هنوز طرح کافی برای مقایسه نیست</h1>
-        <p className="mt-3 text-sm text-text-muted">
-          برای مقایسه به حداقل دو طرح با اطلاعات قابل بررسی نیاز داریم.
-        </p>
-        <Link
-          href="/"
-          className="mt-5 inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand-strong"
-        >
-          بازگشت به خانه <ArrowLeft size={16} aria-hidden="true" />
-        </Link>
-      </main>
-    );
-
   return (
-    <main className="mx-auto max-w-[1200px] px-5 pb-32 pt-6 sm:px-8 md:pb-8">
-      <nav aria-label="مسیر صفحه" className="mb-5 flex items-center gap-2 text-xs text-text-muted">
-        <Link href="/" className="hover:text-brand-strong">
-          خانه
-        </Link>
-        <ChevronLeft size={15} aria-hidden="true" />
-        <span>مقایسه {schema.nameFa}</span>
-      </nav>
+    <>
       <div className="sticky top-0 z-20 -mx-5 border-y border-border bg-surface-raised/95 px-5 py-3 shadow-card backdrop-blur sm:-mx-8 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -266,26 +234,7 @@ export function ComparisonExperience({
           </div>
         )}
       </div>
-      {products.some((product) => product.isSampleData) && (
-        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border bg-warning-soft p-4 text-xs leading-7 text-warning">
-          <Info size={19} className="mt-1 shrink-0" aria-hidden="true" />
-          <p>
-            <strong>داده‌های نمونه و ساختگی:</strong> شرکت‌ها، طرح‌ها، پوشش‌ها و حق‌بیمه‌ها واقعی
-            نیستند؛ این صفحه امکان خرید یا دریافت قیمت واقعی ندارد.
-            {mode === "fallback" && (
-              <span>
-                {" "}
-                {fallbackReason === "empty"
-                  ? "پایگاه داده برای این دسته خالی است."
-                  : fallbackReason === "invalid-schema"
-                    ? "ساختار داده‌های پایگاه داده معتبر نیست."
-                    : "اتصال به پایگاه داده برقرار نشد."}{" "}
-                داده‌های نمونه نمایش داده می‌شوند.
-              </span>
-            )}
-          </p>
-        </div>
-      )}
+      {catalogueNotice}
       <section
         aria-label="اولویت‌های مقایسه"
         className="mt-5 rounded-3xl border border-border bg-surface-raised p-5 shadow-card"
@@ -566,6 +515,6 @@ export function ComparisonExperience({
         </div>
       </div>
       {source && <SourceDialog source={source} onClose={() => setSource(null)} />}
-    </main>
+    </>
   );
 }
